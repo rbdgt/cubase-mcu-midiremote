@@ -214,7 +214,7 @@ Current limitations of the MIDI Remote API:
 <summary>iCON V1-M / V1-X</summary>
 
 The iCON V1-M has a touch screen button matrix with customizable button labels (via the iMAP software).
-The mappings of the MIDI Remote Script are available as an iMAP DAW mapping that you can [download](assets/mcu-midiremote.v1m-daw) and load into iMAP (right-click > "Load DAW mapping") so the button layout on the V1-M matches the layout of the MIDI Remote control surface.
+The mappings of the MIDI Remote Script are available as an iMAP DAW mapping that you can [download](https://github.com/bjoluc/cubase-mcu-midiremote/releases/latest/download/mcu-midiremote.v1m-daw) and load into iMAP (right-click > "Load DAW mapping") so the button layout on the V1-M matches the layout of the MIDI Remote control surface.
 When you customize your mappings in the Cubase MIDI Remote Mapping Assistant, you can use the iMAP software to update the labels on the V1-M.
 The default mapping assigns each button of the first three function layers (blue, green, yellow) to a corresponding virtual button on the MIDI Remote control surface.
 Presuming the provided iMAP DAW mapping has been loaded, the following aspects of the V1-M script differ from the mapping described above:
