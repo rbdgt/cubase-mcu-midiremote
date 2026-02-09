@@ -2,6 +2,7 @@ import { MidiOutputPort } from "/decorators/MidiOutputPort";
 
 export class MidiPortPair {
   private static nextPortPairIndex = 1;
+  public isExtender: boolean;
 
   private portPairIndex = MidiPortPair.nextPortPairIndex++;
 
@@ -9,6 +10,7 @@ export class MidiPortPair {
   output: MidiOutputPort;
 
   constructor(driver: MR_DeviceDriver, isExtender: boolean) {
+    this.isExtender = isExtender;    
     const name = isExtender ? "Extender" : "Main";
 
     this.input = driver.mPorts.makeMidiInput(`Input ${this.portPairIndex} - ${name}`);

@@ -52,7 +52,10 @@ function bindLifecycleEvents(device: Device, lifecycleCallbacks: LifecycleCallba
 
   lifecycleCallbacks.addDeactivationCallback((context) => {
     device.colorManager?.resetColors(context);
-    device.lcdManager.clearDisplays(context);
+    // SAFETY CHECK: Ensure lcdManager exists before calling
+    if (device.lcdManager && typeof device.lcdManager.clearDisplays === 'function') {
+      device.lcdManager.clearDisplays(context);
+    }
 
     // Reset faders
     for (let faderIndex = 0; faderIndex < 9; faderIndex++) {
