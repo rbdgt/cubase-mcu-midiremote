@@ -84,6 +84,10 @@ export const deviceConfig: DeviceConfig = {
       channelElements,
       controlSectionElements: {
         mainFader: new TouchSensitiveMotorFader(surface, x, 24.4, 1.8, 12),
+        mainVuMeters: {
+          left: surface.makeCustomValueVariable("Main VU Meter L"),
+          right: surface.makeCustomValueVariable("Main VU Meter R"),
+        },
         jogWheel: new JogWheel(surface, x + 12.75, 30, 6, 6),
         buttons: {
           transport: { rewind: transportButtons[0], forward: transportButtons[1], stop: transportButtons[2], play: transportButtons[3], record: transportButtons[4] }

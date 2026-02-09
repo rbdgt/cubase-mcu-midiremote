@@ -29,6 +29,7 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
       surface,
       deviceSurface.controlSectionElements,
     );
+    this.controlSectionElements.mainVuMeters = deviceSurface.controlSectionElements.mainVuMeters;
     this.customElements = (deviceSurface.customElements ?? {}) as CustomElements;
   }
 

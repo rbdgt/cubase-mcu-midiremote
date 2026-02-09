@@ -50,7 +50,7 @@ var CONFIGURATION = {
    * Whether touching a channel's fader will select the channel ("Auto Select"). Replace `true` with
    * `false` below to disable auto selection.
    */
-  enableAutoSelect: true,
+  enableAutoSelect: false,
 
   /**
    * By default, the main fader is mapped to the first output channel's volume. If you use the
@@ -83,7 +83,7 @@ var CONFIGURATION = {
     audio: true,
     instrument: true,
     sampler: true,
-    midi: true,
+    midi: false,
     fx: true,
     group: true,
     vca: true,
@@ -108,7 +108,7 @@ var CONFIGURATION = {
    *
    * @devices X-Touch, X-Touch One, V1-M
    */
-  displayColorMode: "encoders",
+  displayColorMode: "none",
 
   /**
    * If you are frequently using display metering on your MCU, you can set this option to `true` to
@@ -124,18 +124,18 @@ var CONFIGURATION = {
    * would like to change the default order (the one the script is initialized with), set this
    * option to `true`.
    */
-  flipDisplayRowsByDefault: false,
+  flipDisplayRowsByDefault: true,
 
   /**
    * Set this option to `true` if you want the jog wheel to move the cursor in zoom mode too
    * (instead of zooming in and out).
    */
-  disableJogWheelZoom: false,
+  disableJogWheelZoom: true,
 
   /**
    * If you set this option to `true`, the channel left/right buttons will be mapped to navigate
    * encoder parameter pages by default, and only move the mixer channels while Shift is held – just
    * like Cubase's default Mackie Control integration does.
    */
-  mapChannelButtonsToParameterPageNavigation: false,
+  mapChannelButtonsToParameterPageNavigation: true,
 };

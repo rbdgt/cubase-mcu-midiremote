@@ -5,12 +5,13 @@ import { config, deviceConfig } from "/config";
 import { MidiOutputPort } from "/decorators/MidiOutputPort";
 import { Device, MainDevice } from "/devices";
 import { GlobalState } from "/state";
-import { ContextVariable, LifecycleCallbacks } from "/util";
+import { ContextVariable, LifecycleCallbacks, makeTimerUtils, TimerUtils } from "/util";
 
 export function bindDevicesToMidi(
   devices: Device[],
   globalState: GlobalState,
   lifecycleCallbacks: LifecycleCallbacks,
+  timerUtils: TimerUtils
 ) {
   const segmentDisplayManager = new SegmentDisplayManager(devices);
 
@@ -21,10 +22,10 @@ export function bindDevicesToMidi(
 
   for (const device of devices) {
     bindLifecycleEvents(device, lifecycleCallbacks);
-    bindChannelElements(device, globalState);
+    bindChannelElements(device, globalState, timerUtils, lifecycleCallbacks);
 
     if (device instanceof MainDevice) {
-      bindControlSectionElements(device, globalState);
+      bindControlSectionElements(device, globalState, timerUtils, lifecycleCallbacks);
     }
   }
 
@@ -72,40 +73,59 @@ function bindLifecycleEvents(device: Device, lifecycleCallbacks: LifecycleCallba
 }
 
 function bindVuMeter(
-  vuMeter: MR_SurfaceCustomValueVariable,
+  vuMeter: MR_Value,
   outputPort: MidiOutputPort,
   meterId: number,
   midiChannel = 0,
+  timerUtils: TimerUtils, 
+  lifecycleCallbacks: LifecycleCallbacks
 ) {
-  const sendLevel = (context: MR_ActiveDevice, level: number) => {
-    sendMeterLevel(context, outputPort, meterId, level, midiChannel);
-  };
-
+  let lastSentLevel = 0;
   let isMeterUnassigned = false;
+  const sendLevel = (context: MR_ActiveDevice, level: number) => {
+    outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + level]);
+    lastSentLevel = level;
+    };
+
+
   vuMeter.mOnProcessValueChange = (context, newValue) => {
     if (!isMeterUnassigned || newValue === 0) {
-      // Apply a log scale twice to make the meters look more like Cubase's MixConsole meters
+      // SCALING FOR 12 SEGMENTS (0-11)
+      const sensitivityScalar = 8.8; 
+      const offsetCorrection = -3.2; // Stronger negative offset to clear bottom LEDs
+
       const meterLevel = Math.ceil(
-        (1 + Math.log10(0.1 + 0.9 * (1 + Math.log10(0.1 + 0.9 * newValue)))) *
-          (deviceConfig.maximumMeterValue ?? 0xe) -
-          0.25,
+        (1 + Math.log10(0.1 + 0.9 * (1 + Math.log10(0.1 + 0.9 * newValue)))) * sensitivityScalar - offsetCorrection
       );
 
-      sendLevel(context, meterLevel);
+      // Final clamp for 12 segments
+      const clampedLevel = Math.max(0, Math.min(11, meterLevel));
+      sendLevel(context, clampedLevel);
     }
   };
 
-  const setIsMeterUnassigned = (context: MR_ActiveDevice, isUnassigned: boolean) => {
-    isMeterUnassigned = isUnassigned;
-    if (isUnassigned) {
-      sendLevel(context, 0);
+  // Start a timer to refresh the meter level every 100ms, preventing the hardware from dimming the LEDs
+  var refreshId = "meterRefresh_" + meterId + "_" + midiChannel;
+  var triggerRefresh = function (context) {
+    if (!isMeterUnassigned) {
+      sendLevel(context, lastSentLevel);
     }
+    timerUtils.setTimeout(context, refreshId, triggerRefresh, 0.1);
   };
 
-  return { setIsMeterUnassigned };
+  lifecycleCallbacks.addActivationCallback(function (context) {
+    triggerRefresh(context);
+  });
+
+  return {
+    setIsMeterUnassigned: function (context, isUnassigned) {
+      isMeterUnassigned = isUnassigned;
+      if (isUnassigned) sendLevel(context, 0);
+    }
+  };
 }
 
-function bindChannelElements(device: Device, globalState: GlobalState) {
+function bindChannelElements(device: Device, globalState: GlobalState, timerUtils: TimerUtils, lifecycleCallbacks: LifecycleCallbacks) {
   const ports = device.ports;
 
   for (const [channelIndex, channel] of device.channelElements.entries()) {
@@ -204,7 +224,7 @@ function bindChannelElements(device: Device, globalState: GlobalState) {
     };
 
     // VU Meter
-    const { setIsMeterUnassigned } = bindVuMeter(channel.vuMeter, ports.output, channelIndex);
+    const setIsMeterUnassigned = bindVuMeter(channel.vuMeter, ports.output, channelIndex, 0, timerUtils, lifecycleCallbacks).setIsMeterUnassigned;
 
     globalState.areChannelMetersEnabled.addOnChangeCallback(
       (context, areMetersEnabled) => {
@@ -242,7 +262,7 @@ function bindChannelElements(device: Device, globalState: GlobalState) {
   });
 }
 
-function bindControlSectionElements(device: MainDevice, globalState: GlobalState) {
+function bindControlSectionElements(device: MainDevice, globalState: GlobalState, timerUtils: TimerUtils, lifecycleCallbacks: LifecycleCallbacks) {
   const ports = device.ports;
 
   const elements = device.controlSectionElements;
@@ -333,7 +353,9 @@ function bindControlSectionElements(device: MainDevice, globalState: GlobalState
 
   // Main VU Meters
   if (elements.mainVuMeters) {
-    bindVuMeter(elements.mainVuMeters.left, ports.output, 0, 1);
-    bindVuMeter(elements.mainVuMeters.right, ports.output, 1, 1);
+    // Meter ID 0 = Left, ID 1 = Right
+    // The '1' at the end specifies MIDI Channel 2
+    bindVuMeter(elements.mainVuMeters.left, ports.output, 0, 1, timerUtils, lifecycleCallbacks);
+    bindVuMeter(elements.mainVuMeters.right, ports.output, 1, 1, timerUtils, lifecycleCallbacks);
   }
 }

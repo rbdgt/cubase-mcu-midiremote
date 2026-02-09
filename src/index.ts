@@ -43,7 +43,11 @@ lifecycleCallbacks.addActivationCallback((context) => {
 });
 
 // Bind device elements to MIDI
-const { segmentDisplayManager } = bindDevicesToMidi(devices, globalState, lifecycleCallbacks);
+//const { segmentDisplayManager } = bindDevicesToMidi(devices, globalState, lifecycleCallbacks);
+
+// NEW call including timerUtils:
+var result = bindDevicesToMidi(devices, globalState, lifecycleCallbacks, timerUtils);
+var segmentDisplayManager = result.segmentDisplayManager;
 
 // Map device elements to host functions
 makeHostMapping(page, devices, segmentDisplayManager, globalState, lifecycleCallbacks);

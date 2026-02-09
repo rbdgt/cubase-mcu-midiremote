@@ -16,7 +16,10 @@ const enum LocalValueDisplayMode {
  * Handles the LCD display text of a single channel
  */
 export class ChannelTextManager {
-  private static readonly channelWidth = deviceConfig.hasIndividualScribbleStrips ? 7 : 6;
+  //private static readonly channelWidth = deviceConfig.hasIndividualScribbleStrips ? 7 : 6;
+  private static readonly channelWidth = 5;
+
+  
 
   private static readonly defaultParameterNameBuilder: EncoderParameterNameBuilder = (
     title1,
@@ -32,16 +35,25 @@ export class ChannelTextManager {
     return input.replace(/[^\x00-\x7F]/g, "");
   }
 
-  /**
-   * Given a <= `ChannelTextManager.channelWidth` characters long string, returns a left-padded
-   * version of it that appears centered on an `ChannelTextManager.channelWidth`-character display.
-   */
-  private static centerString(input: string, width = ChannelTextManager.channelWidth) {
-    if (input.length >= width) {
-      return input;
-    }
+  private static centerString(input: string, width = 7) {
+    // 1. Strip whitespace and ensure we don't exceed our 5-char limit
+    const trimmed = input.trim();
+    const word = trimmed.substring(0, 5);
+    
+    // 2. Calculate how much total padding we need to fill the 7-char display block
+    const totalPadding = width - word.length; // e.g., for a 3-char word, padding is 4
+    
+    // 3. Split padding: half before, half after
+    const leadingSpacesCount = Math.floor(totalPadding / 2);
+    const trailingSpacesCount = totalPadding - leadingSpacesCount;
 
-    return LcdManager.makeSpaces(Math.floor((width - input.length) / 2)) + input;
+    // 4. Construct the centered string
+    let result = "";
+    for (let i = 0; i < leadingSpacesCount; i++) result += " ";
+    result += word;
+    for (let i = 0; i < trailingSpacesCount; i++) result += " ";
+
+    return result;
   }
 
   /**
@@ -298,17 +310,12 @@ export class ChannelTextManager {
    */
   private updateSupplementaryInfo(context: MR_ActiveDevice) {
     if (deviceConfig.hasSecondaryScribbleStrips) {
-      this.sendText(
-        context,
-        3,
-        ChannelTextManager.centerString(
-          ChannelTextManager.abbreviateString(
-            this.isFaderParameterDisplayed.get(context)
-              ? this.faderParameterValue.get(context)
-              : this.meterPeakLevel.get(context),
-          ),
-        ),
-      );
+      // Row 3 is the bottom line of the second display
+      const text = this.isFaderParameterDisplayed.get(context) 
+                   ? this.faderParameterValue.get(context) 
+                   : this.meterPeakLevel.get(context);
+      
+      this.sendText(context, 3, ChannelTextManager.centerString(text));
     }
   }
 
