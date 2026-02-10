@@ -36,8 +36,10 @@ export class ChannelTextManager {
   }
 
   private static centerString(input: string, width = 7) {
+    // Ensure input is a string to prevent .trim() errors
+    const safeInput = (input === undefined || input === null) ? "" : input.toString();
     // 1. Strip whitespace and ensure we don't exceed our 5-char limit
-    const trimmed = input.trim();
+    const trimmed = safeInput.trim();
     const word = trimmed.substring(0, 5);
     
     // 2. Calculate how much total padding we need to fill the 7-char display block
@@ -310,9 +312,11 @@ export class ChannelTextManager {
    */
   private updateSupplementaryInfo(context: MR_ActiveDevice) {
     if (deviceConfig.hasSecondaryScribbleStrips) {
-      var peakText = this.meterPeakLevel.get(context);
-      // Row 3 is the bottom line of the Pro X secondary display
-      this.sendText(context, 3, ChannelTextManager.centerString(peakText));
+      const text = this.isFaderParameterDisplayed.get(context)
+      ? this.faderParameterValue.get(context)
+      : this.meterPeakLevel.get(context);
+
+      this.sendText(context, 3, ChannelTextManager.centerString(text));
     }
   }
 
@@ -442,7 +446,7 @@ export class ChannelTextManager {
       context,
       ChannelTextManager.abbreviateString(
         ChannelTextManager.stripNonAsciiCharacters(ChannelTextManager.translateParameterName(name)),
-      ),
+      ).substring(0, 3),
     );
 
     if (this.isFaderParameterDisplayed.get(context)) {

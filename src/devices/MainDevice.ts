@@ -7,12 +7,14 @@ import { Device } from "./Device";
 import { deviceConfig } from "/config";
 import { Lamp } from "/decorators/surface-elements/Lamp";
 import { LedButton } from "/decorators/surface-elements/LedButton";
+import { ChannelTextManager } from "/midi/managers/lcd/ChannelTextManager";
 import { GlobalState } from "/state";
 import { TimerUtils, applyDefaultsFactory, createElements } from "/util";
 
 export class MainDevice<CustomElements extends Record<string, any> = {}> extends Device {
   controlSectionElements: ControlSectionSurfaceElements;
   customElements: CustomElements;
+  public masterTextManager: ChannelTextManager;
 
   constructor(
     driver: MR_DeviceDriver,
@@ -25,10 +27,23 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
     const deviceSurface = deviceConfig.createMainSurface(surface, surfaceXPosition);
     super(driver, firstChannelIndex, deviceSurface, globalState, timerUtils, false);
 
+    // index 8 represents the 9th physical fader (Master)
+    // We bind it to a custom slot on the LCD (e.g., slot 50)
+    this.masterTextManager = new ChannelTextManager(
+      globalState, 
+      timerUtils, 
+      (ctx, row, txt) => {
+        // Calculate slot 50 for the Master section on the secondary display
+        const startIndex = (row > 1 ? (row - 2) * 56 : row * 56) + 50; 
+        this.lcdManager.sendText(ctx, startIndex, txt, row > 1);
+      }
+    );
+
     this.controlSectionElements = this.applyControlSectionElementDefaults(
       surface,
       deviceSurface.controlSectionElements,
     );
+
     this.controlSectionElements.mainVuMeters = deviceSurface.controlSectionElements.mainVuMeters;
     this.customElements = (deviceSurface.customElements ?? {}) as CustomElements;
   }

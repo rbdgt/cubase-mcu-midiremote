@@ -83,6 +83,36 @@ export function makeHostMapping(
     if (device instanceof MainDevice) {
       const controlSectionElements = device.controlSectionElements;
 
+      // --- START OF NEW MASTER TEXT LOGIC ---
+      const masterManager = device.masterTextManager;
+      const mainFader = controlSectionElements.mainFader;
+
+      // 1. Bind Parameter Name (Truncates "Volume" to "Vol")
+      mainChannel.mValue.mVolume.mOnTitleChange = (ctx, t1, t2) => {
+        masterManager.onFaderParameterNameChange(ctx, t2);
+      };
+
+      // 2. Bind Fader Value (e.g., "-3.2 dB")
+      mainFader.mSurfaceValue.mOnDisplayValueChange = (ctx, val) => {
+        masterManager.onFaderParameterValueChange(ctx, val);
+      };
+
+      // 3. Bind Fader Touch state to trigger the value display
+      mainFader.onTouchedValueChangeCallbacks.addCallback((ctx, touched) => {
+        const isTouched = Boolean(touched);
+        masterManager.onFaderTouchedChange(ctx, Boolean(touched));
+        // If released, force the Master label back to the secondary screen
+        if (!isTouched) {
+          device.lcdManager.sendText(ctx, 50, "MASTER", true);
+        }
+      });
+
+      // 4. Bind Master Peak Level to show when fader is not touched
+      mainChannel.mValue.mVUMeterPeak.mOnDisplayValueChange = (ctx, val) => {
+        masterManager.onMeterPeakLevelChange(ctx, val);
+      };
+      // --- END OF NEW MASTER TEXT LOGIC ---
+
       // Main Fader
       page.makeValueBinding(
         controlSectionElements.mainFader.mSurfaceValue,
