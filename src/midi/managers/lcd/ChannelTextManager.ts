@@ -310,12 +310,9 @@ export class ChannelTextManager {
    */
   private updateSupplementaryInfo(context: MR_ActiveDevice) {
     if (deviceConfig.hasSecondaryScribbleStrips) {
-      // Row 3 is the bottom line of the second display
-      const text = this.isFaderParameterDisplayed.get(context) 
-                   ? this.faderParameterValue.get(context) 
-                   : this.meterPeakLevel.get(context);
-      
-      this.sendText(context, 3, ChannelTextManager.centerString(text));
+      var peakText = this.meterPeakLevel.get(context);
+      // Row 3 is the bottom line of the Pro X secondary display
+      this.sendText(context, 3, ChannelTextManager.centerString(peakText));
     }
   }
 

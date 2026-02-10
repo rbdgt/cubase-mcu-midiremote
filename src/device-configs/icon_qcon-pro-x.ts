@@ -43,6 +43,7 @@ function makeChannelElements(surface: MR_DeviceSurface, x: number): ChannelSurfa
 
 export const deviceConfig: DeviceConfig = {
   hasSecondaryScribbleStrips: true,
+  maximumMeterValue: 0xd,
   detectionUnits: [
     {
       main: (detectionPortPair) =>

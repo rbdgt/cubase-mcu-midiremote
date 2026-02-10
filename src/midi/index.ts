@@ -80,26 +80,26 @@ function bindVuMeter(
   timerUtils: TimerUtils, 
   lifecycleCallbacks: LifecycleCallbacks
 ) {
-  let lastSentLevel = 0;
+  let lastSentLevel = -1; // Initialize to -1 to indicate that no level has been sent yet
   let isMeterUnassigned = false;
-  const sendLevel = (context: MR_ActiveDevice, level: number) => {
+  var sendLevel = function (context, level) {
     outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + level]);
     lastSentLevel = level;
     };
 
 
-  vuMeter.mOnProcessValueChange = (context, newValue) => {
+  vuMeter.mOnProcessValueChange = function (context, newValue) {
     if (!isMeterUnassigned || newValue === 0) {
       // SCALING FOR 12 SEGMENTS (0-11)
-      const sensitivityScalar = 8.8; 
-      const offsetCorrection = -3.2; // Stronger negative offset to clear bottom LEDs
+      const sensitivityScalar = 12; 
+      const offsetCorrection = 0; // Stronger negative offset to clear bottom LEDs
 
       const meterLevel = Math.ceil(
-        (1 + Math.log10(0.1 + 0.9 * (1 + Math.log10(0.1 + 0.9 * newValue)))) * sensitivityScalar - offsetCorrection
+        (1 + Math.log10(0.1 + 0.9 * (1 + Math.log10(0.1 + 0.9 * newValue)))) * sensitivityScalar + offsetCorrection
       );
 
       // Final clamp for 12 segments
-      const clampedLevel = Math.max(0, Math.min(11, meterLevel));
+      const clampedLevel = Math.max(0, Math.min(12, meterLevel));
       sendLevel(context, clampedLevel);
     }
   };
@@ -107,8 +107,9 @@ function bindVuMeter(
   // Start a timer to refresh the meter level every 100ms, preventing the hardware from dimming the LEDs
   var refreshId = "meterRefresh_" + meterId + "_" + midiChannel;
   var triggerRefresh = function (context) {
-    if (!isMeterUnassigned) {
-      sendLevel(context, lastSentLevel);
+    // Only refresh if we have a valid level (>= 0) and fader is assigned
+    if (!isMeterUnassigned && lastSentLevel >= 0) {
+      outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + lastSentLevel]);
     }
     timerUtils.setTimeout(context, refreshId, triggerRefresh, 0.1);
   };
