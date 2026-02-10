@@ -28,7 +28,10 @@ function makeChannelElements(surface: MR_DeviceSurface, x: number): ChannelSurfa
     return {
       index,
       encoder,
-      scribbleStrip: { trackTitle: surface.makeCustomValueVariable("scribbleStripTrackTitle") },
+      scribbleStrip: { 
+        trackTitle: surface.makeCustomValueVariable("scribbleStripTrackTitle"),
+        meterPeakLevel: surface.makeCustomValueVariable("Meter Peak Level"),
+      },
       vuMeter: surface.makeCustomValueVariable("vuMeter"),
       buttons: {
         record: makeSquareButton(surface, 4 + currentChannelXPosition, 13, true),
@@ -56,6 +59,7 @@ export const deviceConfig: DeviceConfig = {
           .expectOutputNameContains(`iCON QCON XS${extenderNumber} V2.08`),
     },
   ],
+
   enhanceMapping({ devices, lifecycleCallbacks }) {
     lifecycleCallbacks.addActivationCallback((context) => {
       let mainDevice = null;
@@ -72,10 +76,13 @@ export const deviceConfig: DeviceConfig = {
         mainDevice.lcdManager.sendText(context, 50, "MASTER", true);
       }
     });
+
   },
+
   createExtenderSurface(surface, x) {
     return { width: channelElementsWidth + 3.1, channelElements: makeChannelElements(surface, x) };
   },
+  
   createMainSurface(surface, x) {
     const channelElements = makeChannelElements(surface, x);
     x += channelElementsWidth;
