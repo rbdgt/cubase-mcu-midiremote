@@ -49,8 +49,8 @@ export function makeHostMapping(
       // surface variables bound to the involved host variables.
 
       // Only use the double-binding workaround if on specific older Cubase versions
-      const useWorkaround = false; // Set to true only if experiencing missing titles
-      for (let i = 0; i < (useWorkaround ? 2 : 1); i++) { 
+      //const useWorkaround = false; // Set to true only if experiencing missing titles
+      //for (let i = 0; i < (useWorkaround ? 2 : 1); i++) { 
         // Buttons
         const buttons = channelElements.buttons;
         page
@@ -72,7 +72,7 @@ export function makeHostMapping(
             channel.mValue.mVUMeterPeak,
           );
         }
-      }
+      //}
 
       return channel;
     });

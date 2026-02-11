@@ -227,34 +227,20 @@ export class ChannelTextManager {
   }
 
   private updateNameValueDisplay(context: MR_ActiveDevice) {
-    const row = +this.globalState.areDisplayRowsFlipped.get(context);
-
-    // Skip updating the lower display row on MCU Pro when horizontal metering mode is enabled
-    if (
-      DEVICE_NAME === "MCU Pro" &&
-      row === 1 &&
-      this.globalState.areChannelMetersEnabled.get(context) &&
-      !this.globalState.isGlobalLcdMeterModeVertical.get(context)
-    ) {
-      return;
-    }
-
-    const localValueDisplayMode = this.localValueDisplayMode.get(context);
-    const text = localValueDisplayMode === LocalValueDisplayMode.PushValue
-        ? this.pushParameterValue.get(context)
-        : localValueDisplayMode === LocalValueDisplayMode.EncoderValue ||
-          this.globalState.isValueDisplayModeActive.get(context)
-          ? this.parameterValue.get(context)
-          : this.parameterName.get(context);
+    const delay = (this.uniqueManagerId % 8) * 0.03; // Increase to 30ms for safety
     
-    // STAGGER FIX: Use the manager's index to delay the SysEx call
-    // Delays each channel by (index * 20ms)
-    const delay = (this.uniqueManagerId % 8) * 0.02; 
-    
-    this.timerUtils.setTimeout(context, `staggered_update_${this.uniqueManagerId}`, () => {
+    this.timerUtils.setTimeout(context, this.timeoutId, () => {
+        // Perform heavy string work ONLY when the timer fires
+        const row = +this.globalState.areDisplayRowsFlipped.get(context);
+        const localMode = this.localValueDisplayMode.get(context);
+        
+        let text = localMode === LocalValueDisplayMode.PushValue 
+            ? this.pushParameterValue.get(context) 
+            : this.parameterName.get(context);
+            
         this.sendText(context, row, text);
     }, delay);
-  }
+}
 
   private updateTrackTitleDisplay(context: MR_ActiveDevice) {
     const row = 1 - +this.globalState.areDisplayRowsFlipped.get(context);
@@ -401,6 +387,7 @@ export class ChannelTextManager {
   }
 
   onChannelNameChange(context: MR_ActiveDevice, name: string) {
+    if (this.channelName.get(context) === name) return;
     const strippedName = ChannelTextManager.abbreviateString(ChannelTextManager.stripNonAsciiCharacters(name));
     
     // Optimization: Only proceed if the name has actually changed

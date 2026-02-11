@@ -107,7 +107,7 @@ function bindVuMeter(
         outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + lastSentLevel]);
     }
     // Change 0.1 to 0.2 to give the MIDI port more breathing room
-    timerUtils.setTimeout(context, refreshId, triggerRefresh, 0.2); 
+    timerUtils.setTimeout(context, refreshId, triggerRefresh, 1); 
     };
   };
 
