@@ -240,17 +240,20 @@ export class ChannelTextManager {
     }
 
     const localValueDisplayMode = this.localValueDisplayMode.get(context);
-
-    this.sendText(
-      context,
-      row,
-      localValueDisplayMode === LocalValueDisplayMode.PushValue
+    const text = localValueDisplayMode === LocalValueDisplayMode.PushValue
         ? this.pushParameterValue.get(context)
         : localValueDisplayMode === LocalValueDisplayMode.EncoderValue ||
           this.globalState.isValueDisplayModeActive.get(context)
           ? this.parameterValue.get(context)
-          : this.parameterName.get(context),
-    );
+          : this.parameterName.get(context);
+    
+    // STAGGER FIX: Use the manager's index to delay the SysEx call
+    // Delays each channel by (index * 20ms)
+    const delay = (this.uniqueManagerId % 8) * 0.02; 
+    
+    this.timerUtils.setTimeout(context, `staggered_update_${this.uniqueManagerId}`, () => {
+        this.sendText(context, row, text);
+    }, delay);
   }
 
   private updateTrackTitleDisplay(context: MR_ActiveDevice) {
@@ -398,14 +401,18 @@ export class ChannelTextManager {
   }
 
   onChannelNameChange(context: MR_ActiveDevice, name: string) {
-    if (this.isParameterChannelRelated) {
-      this.onParameterChange(context);
+    const strippedName = ChannelTextManager.abbreviateString(ChannelTextManager.stripNonAsciiCharacters(name));
+    
+    // Optimization: Only proceed if the name has actually changed
+    if (this.channelName.get(context) === strippedName) {
+        return;
     }
 
-    this.channelName.set(
-      context,
-      ChannelTextManager.abbreviateString(ChannelTextManager.stripNonAsciiCharacters(name)),
-    );
+    if (this.isParameterChannelRelated) {
+        this.onParameterChange(context);
+    }
+
+    this.channelName.set(context, strippedName);
     this.updateTrackTitleDisplay(context);
   }
 

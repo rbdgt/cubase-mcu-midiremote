@@ -102,6 +102,13 @@ function bindVuMeter(
       const clampedLevel = Math.max(0, Math.min(12, meterLevel));
       sendLevel(context, clampedLevel);
     }
+    var triggerRefresh = function (context) {
+    if (!isMeterUnassigned && lastSentLevel >= 0) {
+        outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + lastSentLevel]);
+    }
+    // Change 0.1 to 0.2 to give the MIDI port more breathing room
+    timerUtils.setTimeout(context, refreshId, triggerRefresh, 0.2); 
+    };
   };
 
   // Start a timer to refresh the meter level every 100ms, preventing the hardware from dimming the LEDs

@@ -47,7 +47,10 @@ export function makeHostMapping(
       // This is a crazy workaround for https://forums.steinberg.net/t/842187: Running the below
       // block twice keeps `mOnTitleChange` and `mOnColorChange` working on Cubase >= 12.0.60 for
       // surface variables bound to the involved host variables.
-      for (let i = 0; i < 2; i++) {
+
+      // Only use the double-binding workaround if on specific older Cubase versions
+      const useWorkaround = false; // Set to true only if experiencing missing titles
+      for (let i = 0; i < (useWorkaround ? 2 : 1); i++) { 
         // Buttons
         const buttons = channelElements.buttons;
         page
