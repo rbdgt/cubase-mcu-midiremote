@@ -19,7 +19,7 @@ export class ChannelTextManager {
   //private static readonly channelWidth = deviceConfig.hasIndividualScribbleStrips ? 7 : 6;
   private static readonly channelWidth = 5;
 
-  
+
 
   private static readonly defaultParameterNameBuilder: EncoderParameterNameBuilder = (
     title1,
@@ -35,21 +35,15 @@ export class ChannelTextManager {
     return input.replace(/[^\x00-\x7F]/g, "");
   }
 
-  private static centerString(input: string, width = 7) {
-    // Ensure input is a string to prevent .trim() errors
-    const safeInput = (input === undefined || input === null) ? "" : input.toString();
-    // 1. Strip whitespace and ensure we don't exceed our 5-char limit
+  private static centerString(input: any, width = 7) {
+    const safeInput = (input === undefined || input === null) ? "" : String(input);
     const trimmed = safeInput.trim();
-    const word = trimmed.substring(0, 5);
-    
-    // 2. Calculate how much total padding we need to fill the 7-char display block
+
+    const word = trimmed.substring(0, width - 2);
     const totalPadding = width - word.length; // e.g., for a 3-char word, padding is 4
-    
-    // 3. Split padding: half before, half after
     const leadingSpacesCount = Math.floor(totalPadding / 2);
     const trailingSpacesCount = totalPadding - leadingSpacesCount;
 
-    // 4. Construct the centered string
     let result = "";
     for (let i = 0; i < leadingSpacesCount; i++) result += " ";
     result += word;
@@ -253,7 +247,7 @@ export class ChannelTextManager {
       localValueDisplayMode === LocalValueDisplayMode.PushValue
         ? this.pushParameterValue.get(context)
         : localValueDisplayMode === LocalValueDisplayMode.EncoderValue ||
-            this.globalState.isValueDisplayModeActive.get(context)
+          this.globalState.isValueDisplayModeActive.get(context)
           ? this.parameterValue.get(context)
           : this.parameterName.get(context),
     );
@@ -312,11 +306,11 @@ export class ChannelTextManager {
    */
   private updateSupplementaryInfo(context: MR_ActiveDevice) {
     if (deviceConfig.hasSecondaryScribbleStrips) {
-      const text = this.isFaderParameterDisplayed.get(context)
-      ? this.faderParameterValue.get(context)
-      : this.meterPeakLevel.get(context);
+      const textToShow = this.isFaderParameterDisplayed.get(context)
+        ? this.faderParameterValue.get(context)
+        : this.meterPeakLevel.get(context);
 
-      this.sendText(context, 3, ChannelTextManager.centerString(text));
+      this.sendText(context, 3, ChannelTextManager.centerString(textToShow));
     }
   }
 
@@ -392,9 +386,9 @@ export class ChannelTextManager {
         ChannelTextManager.centerString(
           ChannelTextManager.abbreviateString(
             this.pushParameterValuePrefix +
-              ChannelTextManager.stripNonAsciiCharacters(
-                ChannelTextManager.translateParameterValue(value),
-              ),
+            ChannelTextManager.stripNonAsciiCharacters(
+              ChannelTextManager.translateParameterValue(value),
+            ),
           ),
         ),
       );
@@ -442,12 +436,16 @@ export class ChannelTextManager {
   }
 
   onFaderParameterNameChange(context: MR_ActiveDevice, name: string) {
-    this.faderParameterName.set(
-      context,
-      ChannelTextManager.abbreviateString(
-        ChannelTextManager.stripNonAsciiCharacters(ChannelTextManager.translateParameterName(name)),
-      ).substring(0, 3),
-    );
+    const translated = ChannelTextManager.translateParameterName(name);
+    const lowerName = translated.toLowerCase();
+
+    // Force "Vol" if name is empty, "volume", or "stereo" (typical for Master)
+    let shortName = "Vol";
+    if (name !== "" && lowerName.indexOf("volume") === -1 && lowerName.indexOf("stereo") === -1) {
+      shortName = translated.substring(0, 3);
+    }
+
+    this.faderParameterName.set(context, shortName);
 
     if (this.isFaderParameterDisplayed.get(context)) {
       this.updateSecondaryTrackTitleDisplay(context);

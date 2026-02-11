@@ -33,9 +33,10 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
       globalState, 
       timerUtils, 
       (ctx, row, txt) => {
+        const displayRow = row > 1 ? row - 2 : row; // Map physical rows to display rows
         // Calculate slot 50 for the Master section on the secondary display
-        const startIndex = (row > 1 ? (row - 2) * 56 : row * 56) + 50; 
-        this.lcdManager.sendText(ctx, startIndex, txt, row > 1);
+        const startIndex = (displayRow * 56) + 50; + 50; 
+        this.lcdManager.sendText(ctx, startIndex, txt.substring(0, 6), row > 1);
       }
     );
 
