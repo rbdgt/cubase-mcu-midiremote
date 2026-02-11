@@ -19,20 +19,20 @@ export class ExtenderDevice extends Device {
     firstChannelIndex: number,
     surfaceXPosition: number,
   ) {
-    // 1. Define the 8-channel layout for the XS Extender [cite: 443, 478]
+    // 1. Create Functional & Visual Channel Elements [cite: 478, 479]
     const channelElements = createElements(8, (index) => {
       const currentX = surfaceXPosition + index * channelWidth;
       const encoder = new LedPushEncoder(surface, 3.1 + currentX, 8.8, 3.6, 3.6);
       
-      // Relate a label field to the encoder for host parameter feedback [cite: 443, 604]
-      surface.makeLabelField(3.1 + currentX, 3, 3.75, 2).relateTo(encoder);
+      // VISUAL FIX: Add label fields so Cubase draws the LCD screens [cite: 443, 604]
+      // Primary Display row
+      surface.makeLabelField(3.1 + currentX, 3, 3.75, 2).relateTo(encoder); 
 
       return {
         index,
         encoder,
         scribbleStrip: {
           trackTitle: surface.makeCustomValueVariable("scribbleStripTrackTitle"),
-          // XS Extenders also have the secondary display row [cite: 480, 581]
           meterPeakLevel: surface.makeCustomValueVariable("Meter Peak Level"),
         },
         vuMeter: surface.makeCustomValueVariable("vuMeter"),
@@ -46,12 +46,16 @@ export class ExtenderDevice extends Device {
       };
     });
 
-    const extenderWidth = (8 * channelWidth) + 3.1; // [cite: 447, 483]
+    const extenderWidth = (8 * channelWidth) + 3.1;
 
-    // 2. Initialize parent device as an extender (isExtender = true) [cite: 682]
+    // 2. Initialize parent device
     super(driver, firstChannelIndex, { width: extenderWidth, channelElements }, globalState, timerUtils, true);
     
-    // Add the device frame to the visual surface [cite: 387, 448]
-    surface.makeBlindPanel(surfaceXPosition, 0, extenderWidth, surfaceHeight);
+    // VISUAL FIX: Define the chassis background [cite: 387, 448]
+    // This removes the "black square" by defining a frame for the device
+    // surface.makeBlindPanel(surfaceXPosition, 0, extenderWidth, surfaceHeight);
+
+    // VISUAL FIX: Add the silver display bar common to iCON devices [cite: 449, 453]
+    // surface.makeBlindPanel(surfaceXPosition + 1.5, 1.5, extenderWidth - 3, 5);
   }
 }

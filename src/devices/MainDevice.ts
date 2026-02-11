@@ -33,7 +33,7 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
       const encoder = new LedPushEncoder(surface, 3.1 + currentX, 8.8, 3.6, 3.6); // 
       
       // Make label fields to allow Cubase to show parameter names in the UI
-      surface.makeLabelField(3.1 + currentX, 3, 3.75, 2).relateTo(encoder); // [cite: 443]
+      surface.makeLabelField(3.1 + currentX, 3, 3.75, 2).relateTo(encoder); 
 
       return {
         index,
