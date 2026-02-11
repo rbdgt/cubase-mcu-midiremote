@@ -1,100 +1,49 @@
 import * as dotenv from "dotenv";
-import { execaCommand } from "execa";
-import { extract, parse } from "jest-docblock";
-import { readFileSync, readdirSync } from "node:fs";
-
-import slugify from "@sindresorhus/slugify";
-import { resolve } from "node:path";
-import prependFile from "prepend-file";
 import { defineConfig } from "tsup";
+import prependFile from "prepend-file";
+import { readFileSync, copyFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 
 dotenv.config();
-const copyCommand = process.env.COPY_COMMAND;
-const devicesConfiguration = process.env.DEVICES ?? '["main"]';
 
-// Read src/config.ts and prepare the configuration section to be prepended to script files
+// Define the Cubase destination path
+const CUBASE_DRIVER_PATH = "C:\\Users\\robin\\Documents\\Steinberg\\Cubase\\MIDI Remote\\Driver Scripts\\Local\\icon\\qcon-pro-x";
+
+// Read the configuration block from src/config.ts
 const configFileContents = readFileSync("src/config.ts", { encoding: "utf-8" });
-const scriptConfig = /BEGIN JS(?:\r?\n|\r)([\s\S]+)/
-  .exec(configFileContents)![1]
-  .replace('devices: ["main"]', `devices: ${devicesConfiguration}`);
+const scriptConfig = configFileContents.split("// BEGIN JS")[1];
 
-// Create a list of all available device configurations and their target directory names by
-// enumerating the `src/devices` directory and parsing all `vendor` and `device` pragmas of the
-// files therein.
-const deviceConfigsDir = "./src/device-configs/";
-const devices = readdirSync(deviceConfigsDir)
-  .map((filename) => ({
-    ...(parse(extract(readFileSync(deviceConfigsDir + filename, { encoding: "utf-8" }))) as {
-      vendor: string;
-      device: string;
-    }),
-    deviceConfigFilename: filename,
-  }))
-  .filter(({ vendor, device }) => vendor && device)
-  .map(({ deviceConfigFilename, vendor, device }) => {
-    const vendorFolder = slugify(vendor, { decamelize: false });
-    const deviceFolder = slugify(
-      device.replace(/^X-Touch$/, "xtouch"), // for setup instructions backwards compatibility
-      { decamelize: false },
-    );
-
-    return {
-      deviceConfigFilename,
-      vendor,
-      device,
-      targetFilename: `${vendorFolder}_${deviceFolder}`,
-      targetPath: `dist/${vendorFolder}/${deviceFolder}`,
-    };
-  });
-
-export default defineConfig(
-  devices.map((device) => ({
-    entry: { [device.targetFilename]: "src/index.ts" },
-    outDir: device.targetPath,
-    clean: true,
-    external: ["midiremote_api_v1"],
-    onSuccess: async () => {
-      // Remove all config options with a non-matching `@devices` pragma
-      const deviceSpecificScriptConfig = scriptConfig.replace(
-        /(?:\r?\n|\r)\s*\/\*\*\s*(?:\r?\n|\r)(?:[^\*]|(?:\*(?!\/)))*@devices ([\S ]+)(?:\r?\n|\r)\s+\*\/(?:\r?\n|\r)[\S ]+/gm,
-        (match, devicesPragma: string) => {
-          // Remove devices pragma from match
-          match = match.replace(/\*(\r?\n|\r)([\S ]+)(\r?\n|\r)*@devices [\S ]+(\r?\n|\r)\s+/, "");
-
-          const supportedDevices = devicesPragma.split(", ");
-          if (devicesPragma.includes("!")) {
-            // Negative mode – include everything *but* the specified device(s)
-            return supportedDevices.includes("!" + device.device) ? "" : match;
-          }
-
-          return supportedDevices.includes(device.device) ? match : "";
-        },
-      );
-
-      await prependFile(
-        `${device.targetPath}/${device.targetFilename}.js`,
-        deviceSpecificScriptConfig,
-      );
-
-      if (copyCommand) {
-        await execaCommand(copyCommand, { shell: true, stdout: process.stdout });
-      }
-    },
-    define: {
-      SCRIPT_VERSION: `"${process.env.npm_package_version}"`,
-      DEVICE_NAME: `"${device.device}"`,
-      VENDOR_NAME: `"${device.vendor}"`,
-    },
-    target: "es5",
-    esbuildPlugins: [
-      {
-        name: "device-config-loader",
-        setup(build) {
-          build.onResolve({ filter: /^current-device$/ }, () => ({
-            path: resolve(deviceConfigsDir + device.deviceConfigFilename),
-          }));
-        },
-      },
-    ],
-  })),
-);
+export default defineConfig({
+  entry: { icon_qcon_pro_x: "src/index.ts" }, 
+  outDir: "dist/icon/qcon_pro_x",
+  clean: true,
+  external: ["midiremote_api_v1"],
+  onSuccess: async () => {
+    const builtFile = `dist/icon/qcon_pro_x/icon_qcon_pro_x.js`;
+    
+    // 1. Prepend the JS configuration block so the script can run in Cubase
+    await prependFile(builtFile, scriptConfig);
+    
+    // 2. Copy the file to the Cubase local driver folder
+    try {
+      // Ensure the directory exists
+      mkdirSync(CUBASE_DRIVER_PATH, { recursive: true });
+      
+      // Copy the built file to the destination
+      const destinationFile = join(CUBASE_DRIVER_PATH, "icon_qcon-pro-x.js");
+      copyFileSync(builtFile, destinationFile);
+      
+      console.log(`Build successful! Script copied to: ${destinationFile}`);
+    } catch (err) {
+      console.error("Failed to copy script to Cubase folder:", err);
+    }
+  },
+  define: {
+    SCRIPT_VERSION: `"1.11.0"`,
+    DEVICE_NAME: `"QCon Pro X"`,
+    VENDOR_NAME: `"iCON"`,
+  },
+  target: "es5",
+  minify: false,
+  noExternal: [/^((?!midiremote_api_v1).)*$/],
+});
