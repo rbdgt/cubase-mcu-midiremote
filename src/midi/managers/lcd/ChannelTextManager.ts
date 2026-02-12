@@ -227,20 +227,16 @@ export class ChannelTextManager {
   }
 
   private updateNameValueDisplay(context: MR_ActiveDevice) {
-    const delay = (this.uniqueManagerId % 8) * 0.03; // Increase to 30ms for safety
-    
-    this.timerUtils.setTimeout(context, this.timeoutId, () => {
-        // Perform heavy string work ONLY when the timer fires
-        const row = +this.globalState.areDisplayRowsFlipped.get(context);
-        const localMode = this.localValueDisplayMode.get(context);
-        
-        let text = localMode === LocalValueDisplayMode.PushValue 
-            ? this.pushParameterValue.get(context) 
-            : this.parameterName.get(context);
-            
-        this.sendText(context, row, text);
-    }, delay);
-}
+    var row = +this.globalState.areDisplayRowsFlipped.get(context);
+    if (false) {
+        return;
+    }
+    var localValueDisplayMode = this.localValueDisplayMode.get(context);
+    this.sendText(context, row, localValueDisplayMode === 2 /* PushValue */  
+      ? this.pushParameterValue.get(context) : localValueDisplayMode === 1 /* EncoderValue */  
+      || this.globalState.isValueDisplayModeActive.get(context) ? this.parameterValue.get(context) 
+      : this.parameterName.get(context));
+  }
 
   private updateTrackTitleDisplay(context: MR_ActiveDevice) {
     const row = 1 - +this.globalState.areDisplayRowsFlipped.get(context);
