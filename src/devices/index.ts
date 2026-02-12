@@ -45,13 +45,17 @@ export function createDevices(
     if (device instanceof MainDevice) {
       // Main Pro X detection string 
       portPair
-        .expectInputNameContains("iCON QCON Pro X V2.10")
-        .expectOutputNameContains("iCON QCON Pro X V2.10");
+        .expectInputNameEquals("iCON QCON Pro X V2.10")
+        .expectOutputNameEquals("iCON QCON Pro X V2.10");
+        //.expectInputNameContains("iCON QCON Pro X V2.10")
+        //.expectOutputNameContains("iCON QCON Pro X V2.10");
     } else {
       // XS Extender detection string [cite: 481]
       portPair
-        .expectInputNameContains(`iCON QCON XS${nextExtenderId} V2.08`)
-        .expectOutputNameContains(`iCON QCON XS${nextExtenderId} V2.08`);
+      .expectInputNameEquals(`iCON QCON XS${nextExtenderId} V2.08`)
+      .expectOutputNameEquals(`iCON QCON XS${nextExtenderId} V2.08`);
+        //.expectInputNameContains(`iCON QCON XS${nextExtenderId} V2.08`)
+        //.expectOutputNameContains(`iCON QCON XS${nextExtenderId} V2.08`);
       nextExtenderId++;
     }
   }

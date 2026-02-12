@@ -27,7 +27,7 @@ export const config: ScriptConfiguration = {
 // Everything below "BEGIN JS" is captured by tsup
 // BEGIN JS
 var CONFIGURATION = {
-  devices: ["extender", "main"],
+  devices: ["main"],
   enableAutoSelect: false,
   mapMainFaderToControlRoom: false,
   resetPanOnEncoderPush: true,

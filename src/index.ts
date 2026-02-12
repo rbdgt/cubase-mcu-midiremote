@@ -22,7 +22,7 @@ import { LifecycleCallbacks, makeTimerUtils } from "/util";
 import { createGlobalState } from "/state";
 import { deviceConfig } from "./config";
 
-const driver = midiremoteApi.makeDeviceDriver(VENDOR_NAME, DEVICE_NAME, "github.com/bjoluc");
+const driver = midiremoteApi.makeDeviceDriver(VENDOR_NAME, DEVICE_NAME, "github.com/rbdgt");
 
 const surface = driver.mSurface;
 
@@ -38,7 +38,7 @@ const lifecycleCallbacks = new LifecycleCallbacks(driver);
 lifecycleCallbacks.addActivationCallback((context) => {
   console.log("Activating cubase-mcu-midiremote v" + SCRIPT_VERSION);
   console.log(
-    "A newer version may be available at https://github.com/bjoluc/cubase-mcu-midiremote/releases",
+    "A newer version may be available at https://github.com/rbdgt/cubase-mcu-midiremote/releases",
   );
 });
 
