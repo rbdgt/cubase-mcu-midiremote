@@ -34,48 +34,40 @@ export function makeHostMapping(
   mixerBankZone.setFollowVisibility(true);
 
   const mixerBankChannels = devices
-    .flatMap((device) => device.channelElements)
-    .map((channelElements) => {
-      const channel = mixerBankZone.makeMixerBankChannel();
+  .flatMap((device) => device.channelElements)
+  .map((channelElements) => {
+    const channel = mixerBankZone.makeMixerBankChannel();
 
-      // Scribble strips
+    // WORKAROUND: Running this block twice keeps mOnTitleChange and 
+    // mOnColorChange working during banking 
+    for (let i = 0; i < 2; i++) { 
+      // 1. Scribble strips 
       page.makeValueBinding(channelElements.scribbleStrip.trackTitle, channel.mValue.mVolume);
 
-      // VU Meter
+      // 2. VU Meter 
       page.makeValueBinding(channelElements.vuMeter, channel.mValue.mVUMeter);
 
-      // This is a crazy workaround for https://forums.steinberg.net/t/842187: Running the below
-      // block twice keeps `mOnTitleChange` and `mOnColorChange` working on Cubase >= 12.0.60 for
-      // surface variables bound to the involved host variables.
+      // 3. Buttons [cite: 3467]
+      const buttons = channelElements.buttons;
+      page.makeValueBinding(buttons.record.mSurfaceValue, channel.mValue.mRecordEnable).setTypeToggle();
+      page.makeValueBinding(buttons.solo.mSurfaceValue, channel.mValue.mSolo).setTypeToggle();
+      page.makeValueBinding(buttons.mute.mSurfaceValue, channel.mValue.mMute).setTypeToggle();
+      page.makeValueBinding(buttons.select.mSurfaceValue, channel.mValue.mSelected).setTypeToggle();
 
-      // Only use the double-binding workaround if on specific older Cubase versions
-      //const useWorkaround = false; // Set to true only if experiencing missing titles
-      //for (let i = 0; i < (useWorkaround ? 2 : 1); i++) { 
-        // Buttons
-        const buttons = channelElements.buttons;
-        page
-          .makeValueBinding(buttons.record.mSurfaceValue, channel.mValue.mRecordEnable)
-          .setTypeToggle();
-        page.makeValueBinding(buttons.solo.mSurfaceValue, channel.mValue.mSolo).setTypeToggle();
-        page.makeValueBinding(buttons.mute.mSurfaceValue, channel.mValue.mMute).setTypeToggle();
-        page
-          .makeValueBinding(buttons.select.mSurfaceValue, channel.mValue.mSelected)
-          .setTypeToggle();
+      // 4. Fader [cite: 3469]
+      page.makeValueBinding(channelElements.fader.mSurfaceValue, channel.mValue.mVolume);
 
-        // Fader
-        page.makeValueBinding(channelElements.fader.mSurfaceValue, channel.mValue.mVolume);
+      // 5. Peak level display (Specific to your Pro X setup) [cite: 3470]
+      if (channelElements.scribbleStrip.meterPeakLevel) {
+        page.makeValueBinding(
+          channelElements.scribbleStrip.meterPeakLevel,
+          channel.mValue.mVUMeterPeak
+        );
+      }
+    }
 
-        // Peak level display
-        if (channelElements.scribbleStrip.meterPeakLevel) {
-          page.makeValueBinding(
-            channelElements.scribbleStrip.meterPeakLevel,
-            channel.mValue.mVUMeterPeak,
-          );
-        }
-      //}
-
-      return channel;
-    });
+    return channel;
+  });
 
   const mainChannel = page.mHostAccess.mMixConsole
     .makeMixerBankZone()

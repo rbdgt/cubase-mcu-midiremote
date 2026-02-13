@@ -140,95 +140,113 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
     // Push Encoder
     channel.encoder.bindToMidi(ports, channelIndex);
 
-    // Display colors
-    if (deviceConfig.colorManager) {
-      const encoderColor = new ContextVariable({ isAssigned: false, r: 0, g: 0, b: 0 });
-      channel.encoder.mEncoderValue.mOnColorChange = (context, r, g, b, _a, isAssigned) => {
-        encoderColor.set(context, { isAssigned, r, g, b });
-        updateColor(context);
-      };
+    // // Display colors
+    // if (deviceConfig.colorManager) {
+    //   const encoderColor = new ContextVariable({ isAssigned: false, r: 0, g: 0, b: 0 });
+    //   channel.encoder.mEncoderValue.mOnColorChange = (context, r, g, b, _a, isAssigned) => {
+    //     encoderColor.set(context, { isAssigned, r, g, b });
+    //     updateColor(context);
+    //   };
 
-      const channelColor = new ContextVariable({ isAssigned: false, r: 0, g: 0, b: 0 });
-      channel.scribbleStrip.trackTitle.mOnColorChange = (context, r, g, b, _a, isAssigned) => {
-        channelColor.set(context, { isAssigned, r, g, b });
-        updateColor(context);
-      };
+    //   const channelColor = new ContextVariable({ isAssigned: false, r: 0, g: 0, b: 0 });
+    //   channel.scribbleStrip.trackTitle.mOnColorChange = (context, r, g, b, _a, isAssigned) => {
+    //     channelColor.set(context, { isAssigned, r, g, b });
+    //     updateColor(context);
+    //   };
 
-      var updateColor = (context: MR_ActiveDevice) => {
-        let color: RgbColor;
-        const currentEncoderColor = encoderColor.get(context);
-        const currentChannelColor = channelColor.get(context);
+    //   var updateColor = (context: MR_ActiveDevice) => {
+    //     let color: RgbColor;
+    //     const currentEncoderColor = encoderColor.get(context);
+    //     const currentChannelColor = channelColor.get(context);
 
-        if (config.displayColorMode === "encoders") {
-          // Fall back to channel color if encoder is not assigned
-          color = currentEncoderColor.isAssigned ? currentEncoderColor : currentChannelColor;
-        } else if (config.displayColorMode === "channels") {
-          color = currentChannelColor;
+    //     if (config.displayColorMode === "encoders") {
+    //       // Fall back to channel color if encoder is not assigned
+    //       color = currentEncoderColor.isAssigned ? currentEncoderColor : currentChannelColor;
+    //     } else if (config.displayColorMode === "channels") {
+    //       color = currentChannelColor;
 
-          // Use white if an encoder has a color but the channel has none. Otherwise, encoder titles
-          // on unassigned channels would not be readable.
-          if (!currentChannelColor.isAssigned && currentEncoderColor.isAssigned) {
-            color = { r: 1, g: 1, b: 1 };
-          }
-        } else {
-          color =
-            currentChannelColor.isAssigned || currentEncoderColor.isAssigned
-              ? { r: 1, g: 1, b: 1 }
-              : { r: 0, g: 0, b: 0 };
-        }
+    //       // Use white if an encoder has a color but the channel has none. Otherwise, encoder titles
+    //       // on unassigned channels would not be readable.
+    //       if (!currentChannelColor.isAssigned && currentEncoderColor.isAssigned) {
+    //         color = { r: 1, g: 1, b: 1 };
+    //       }
+    //     } else {
+    //       color =
+    //         currentChannelColor.isAssigned || currentEncoderColor.isAssigned
+    //           ? { r: 1, g: 1, b: 1 }
+    //           : { r: 0, g: 0, b: 0 };
+    //     }
 
-        device.colorManager?.setChannelColorRgb(context, channelIndex, color);
-      };
-    }
+    //     device.colorManager?.setChannelColorRgb(context, channelIndex, color);
+    //   };
+    // }
 
     // Scribble Strip
     const channelTextManager = device.lcdManager.channelTextManagers[channelIndex];
 
     channel.encoder.mOnEncoderValueTitleChange.addCallback((context, title1, title2) => {
-      channelTextManager.onParameterTitleChange(context, title1, title2);
+      if (!title1 || title1.trim() === "") {
+        channelTextManager.onParameterTitleChange(context, "       ", "       ");
+      } else {
+        channelTextManager.onParameterTitleChange(context, title1, title2);
+      }
     });
 
     channel.encoder.mEncoderValue.mOnDisplayValueChange = (context, value) => {
-      channelTextManager.onParameterDisplayValueChange(context, value);
+      if (!value || value.trim() === "") {
+        channelTextManager.onParameterDisplayValueChange(context, "       ");
+      } else {
+        channelTextManager.onParameterDisplayValueChange(context, value);
+      }
     };
 
     channel.encoder.mPushValue.mOnDisplayValueChange = (context, value) => {
-      channelTextManager.onPushParameterDisplayValueChange(context, value);
+      if (!value || value.trim() === "") {
+        channelTextManager.onPushParameterDisplayValueChange(context, "       ");
+      } else {
+        channelTextManager.onPushParameterDisplayValueChange(context, value);
+      }
     };
 
     channel.scribbleStrip.trackTitle.mOnTitleChange = (context, title, title2) => {
-      var effectiveName = title !== "" ? title : "       ";
-      channelTextManager.onChannelNameChange(context, effectiveName);
-
-      // Reset meters and other info for unassigned channels
-      if (title === "") {
-          channelTextManager.onMeterPeakLevelChange(context, "      ");
-          channelTextManager.onParameterTitleChange(context, " ", " ");
-          channelTextManager.onParameterDisplayValueChange(context, " ");
+      // If title2 is empty, it means the channel is no longer assigned to a track 
+      const isUnassigned = title2 === ""; 
+      
+      if (isUnassigned) {
+        // Force the display to be empty for this channel [cite: 3001]
+        channelTextManager.onChannelNameChange(context, "       "); 
+        channelTextManager.onParameterTitleChange(context, " ", " ");
+        channelTextManager.onParameterDisplayValueChange(context, " ");
+      } else {
+        channelTextManager.onChannelNameChange(context, title);
       }
 
-      // if (DEVICE_NAME === "MCU Pro") {
-      //   clearOverload(context);
-      // }
-
-      // Reset the VU meter when the channel becomes unassigned (there's no way to reliably detect
-      // this just using `channel.vuMeter`).
-      setIsMeterUnassigned(context, title === "");
-
-      return channel;
-    };
+      setIsMeterUnassigned(context, isUnassigned);
+  };
 
     if (deviceConfig.hasSecondaryScribbleStrips && channel.scribbleStrip.meterPeakLevel) {
       channel.scribbleStrip.meterPeakLevel.mOnDisplayValueChange = (context, value) => {
-        channelTextManager.onMeterPeakLevelChange(context, value);
+        if (!value || value.trim() === "") {
+          channelTextManager.onMeterPeakLevelChange(context, "       ");
+        } else {
+          channelTextManager.onMeterPeakLevelChange(context, value);
+        }
       };
 
       channel.fader.mSurfaceValue.mOnDisplayValueChange = (context, value) => {
-        channelTextManager.onFaderParameterValueChange(context, value);
+        if (!value || value.trim() === "") {
+          channelTextManager.onFaderParameterValueChange(context, "       ");
+        } else {
+          channelTextManager.onFaderParameterValueChange(context, value);
+        }
       };
 
       channel.fader.onTitleChangeCallbacks.addCallback((context, _title, parameterName) => {
-        channelTextManager.onFaderParameterNameChange(context, parameterName);
+        if (!parameterName || parameterName.trim() === "") {
+          channelTextManager.onFaderParameterNameChange(context, "       ");
+        } else {
+          channelTextManager.onFaderParameterNameChange(context, parameterName);
+        }
       });
 
       channel.fader.onTouchedValueChangeCallbacks.addCallback((context, isFaderTouched) => {
