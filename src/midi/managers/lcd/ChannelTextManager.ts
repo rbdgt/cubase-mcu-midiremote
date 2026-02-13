@@ -383,17 +383,14 @@ export class ChannelTextManager {
   }
 
   onChannelNameChange(context: MR_ActiveDevice, name: string) {
-    if (this.channelName.get(context) === name) return;
-    const strippedName = ChannelTextManager.abbreviateString(ChannelTextManager.stripNonAsciiCharacters(name));
+// If name is empty, ensure we treat it as a string of spaces
+    var processedName = (name === "" || name == null) ? "       " : name;
     
-    // Optimization: Only proceed if the name has actually changed
-    if (this.channelName.get(context) === strippedName) {
-        return;
-    }
+    if (this.channelName.get(context) === processedName) return;
 
-    if (this.isParameterChannelRelated) {
-        this.onParameterChange(context);
-    }
+    var strippedName = ChannelTextManager.abbreviateString(
+        ChannelTextManager.stripNonAsciiCharacters(processedName)
+    );
 
     this.channelName.set(context, strippedName);
     this.updateTrackTitleDisplay(context);

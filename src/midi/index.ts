@@ -197,15 +197,25 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
     };
 
     channel.scribbleStrip.trackTitle.mOnTitleChange = (context, title, title2) => {
-      channelTextManager.onChannelNameChange(context, title);
+      var effectiveName = title !== "" ? title : "       ";
+      channelTextManager.onChannelNameChange(context, effectiveName);
 
-      if (DEVICE_NAME === "MCU Pro") {
-        clearOverload(context);
+      // Reset meters and other info for unassigned channels
+      if (title === "") {
+          channelTextManager.onMeterPeakLevelChange(context, "      ");
+          channelTextManager.onParameterTitleChange(context, " ", " ");
+          channelTextManager.onParameterDisplayValueChange(context, " ");
       }
+
+      // if (DEVICE_NAME === "MCU Pro") {
+      //   clearOverload(context);
+      // }
 
       // Reset the VU meter when the channel becomes unassigned (there's no way to reliably detect
       // this just using `channel.vuMeter`).
-      setIsMeterUnassigned(context, title2 === "");
+      setIsMeterUnassigned(context, title === "");
+
+      return channel;
     };
 
     if (deviceConfig.hasSecondaryScribbleStrips && channel.scribbleStrip.meterPeakLevel) {
