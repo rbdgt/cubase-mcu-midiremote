@@ -26,6 +26,40 @@ export class LcdManager {
     this.channelTextManagers = createElements(8, (channelIndex) => 
       new ChannelTextManager(globalState, timerUtils, this.sendChannelText.bind(this, channelIndex))
     );
+
+    // --- NEW LOGIC: Listen for Track changes ---
+    globalState.selectedTrackName.addOnChangeCallback((context, trackName) => {
+      // Only draw the banner if we are in a single-track mode (EQ, Plugin, etc.)
+      if (!this.channelTextManagers[0].isParameterChannelRelated) {
+        const pageName = globalState.activeEncoderPageName.get(context);
+        this.drawGlobalBanner(context, trackName, pageName);
+      }
+    });
+
+    // --- NEW LOGIC: Listen for Page changes ---
+    globalState.activeEncoderPageName.addOnChangeCallback((context, pageName) => {
+      if (!this.channelTextManagers[0].isParameterChannelRelated) {
+        const trackName = globalState.selectedTrackName.get(context);
+        this.drawGlobalBanner(context, trackName, pageName);
+      }
+    });
+  }
+
+  // --- NEW METHOD: Draws the 56-character banner ---
+  public drawGlobalBanner(context: MR_ActiveDevice, leftText: string, rightText: string) {
+    const isFlipped = this.globalState.areDisplayRowsFlipped.get(context);
+    const row = isFlipped ? 1 : 0; // Top row, unless flipped
+    
+    // Ensure safe strings and leave room (max 45 chars for the track name)
+    const safeLeft = (leftText || "").substring(0, 45); 
+    const safeRight = (rightText || "");
+
+    // Calculate how many spaces are needed to push the rightText to the far right edge
+    const spacesCount = Math.max(0, 56 - safeLeft.length - safeRight.length);
+    const bannerText = safeLeft + " ".repeat(spacesCount) + safeRight;
+
+    // Send the absolute 56-character string starting at the very left edge (index 0 or 56)
+    this.sendText(context, row * 56, bannerText.substring(0, 56), false); 
   }
 
   public sendText(context: MR_ActiveDevice, startIndex: number, text: string, targetSecondaryDisplay = false) {

@@ -251,21 +251,14 @@ export class ChannelTextManager {
       return;
     }
 
-    let textToSend = this.channelName.get(context);
-    
     // --- UPDATED LOGIC ---
-    // If we are in EQ/Plugin mode, only show the name if it is the Selected Track
-    if (!this.isParameterChannelRelated) {
-      const isSelected = this.rawChannelName.get(context) === this.globalState.selectedTrackName.get(context);
-      if (!isSelected) {
-        textToSend = "       "; // Blank out non-selected tracks
-      }
+    // If we are in Pan/Track mode, draw the 7-character individual track name block.
+    // If we are in EQ/Plugin mode, do NOTHING to the top row. The LcdManager handles the 56-char banner!
+    if (this.isParameterChannelRelated) {
+      this.sendText(context, row, this.channelName.get(context));
     }
 
-    this.sendText(context, row, textToSend);
-    
-    // The secondary displays (above the faders) will still show the channel names
-    // because the faders still control the mixer volumes!
+    // Secondary displays always show the individual channel names
     this.updateSecondaryTrackTitleDisplay(context);
   }
 
@@ -418,7 +411,7 @@ export class ChannelTextManager {
     if (!this.isParameterChannelRelated) {
       this.onParameterChange(context);
 
-      this.updateTrackTitleDisplay(context);
+      //this.updateTrackTitleDisplay(context);
     }
   }
 

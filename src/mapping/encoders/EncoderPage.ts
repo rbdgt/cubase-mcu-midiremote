@@ -317,11 +317,12 @@ export class EncoderPage {
       channelTextManager.setPushParameterValuePrefix(assignment?.pushToggleParameterPrefix);
       channelTextManager.isParameterChannelRelated = this.config.areAssignmentsChannelRelated;
 
-      // --- NEW LOGIC ---
-      // Force the Track Title row to refresh immediately so the names hide or show instantly
+     // Update the channel text
       channelTextManager.updateTrackTitleDisplay(context);
     }
 
+    // --- NEW LOGIC: Tell the global state the name of the new page (e.g. "EQ") ---
+    this.dependencies.globalState.activeEncoderPageName.set(context, this.config.name);
     this.dependencies.globalState.isValueDisplayModeActive.set(context, false);
   }
 
