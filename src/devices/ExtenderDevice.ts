@@ -18,6 +18,7 @@ export class ExtenderDevice extends Device {
     timerUtils: TimerUtils,
     firstChannelIndex: number,
     surfaceXPosition: number,
+    portIndex: number,
   ) {
     // 1. Create Functional & Visual Channel Elements [cite: 478, 479]
     const channelElements = createElements(8, (index) => {
@@ -49,7 +50,7 @@ export class ExtenderDevice extends Device {
     const extenderWidth = (8 * channelWidth) + 3.1;
 
     // 2. Initialize parent device
-    super(driver, firstChannelIndex, { width: extenderWidth, channelElements }, globalState, timerUtils, true);
+    super(driver, firstChannelIndex, { width: extenderWidth, channelElements }, globalState, timerUtils, true, portIndex);
     
     // VISUAL FIX: Define the chassis background [cite: 387, 448]
     // This removes the "black square" by defining a frame for the device

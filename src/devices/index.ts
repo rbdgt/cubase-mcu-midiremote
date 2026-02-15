@@ -21,6 +21,7 @@ export function createDevices(
 
   // 1. Create the device objects based on your config.ts settings
   const devices = config.devices.map((deviceType, deviceIndex) => {
+    const portIndex = deviceIndex + 1; // Start port index at 1 for better readability in MIDI monitoring tools
     const device = new (deviceType === "main" ? MainDevice : ExtenderDevice)(
       driver,
       surface,
@@ -28,35 +29,26 @@ export function createDevices(
       timerUtils,
       deviceIndex * 8, // Each device handles 8 channels
       nextDeviceXPosition,
+      portIndex
     ) as MainDevice | ExtenderDevice;
 
     nextDeviceXPosition += device.surfaceWidth;
     return device;
   });
 
-  // 2. Hardcoded iCON Detection logic (Replacing the old generic loop)
-  // This ensures Cubase only looks for your specific iCON hardware.
+  // 2. Shortened Detection logic 
   const detectionUnit = driver.makeDetectionUnit();
-  let nextExtenderId = 1;
 
   for (const device of devices) {
     const portPair = detectionUnit.detectPortPair(device.ports.input, device.ports.output);
-
     if (device instanceof MainDevice) {
-      // Main Pro X detection string 
       portPair
-        .expectInputNameContains("iCON QCON Pro X")
-        .expectOutputNameContains("iCON QCON Pro X");
-        //.expectInputNameContains("iCON QCON Pro X V2.10")
-        //.expectOutputNameContains("iCON QCON Pro X V2.10");
+        .expectInputNameEquals('iCON QCON Pro X V2.10')
+        .expectOutputNameEquals('iCON QCON Pro X V2.10');
     } else {
-      // XS Extender detection string [cite: 481]
       portPair
-      .expectInputNameContains(`iCON QCON Pro XS${nextExtenderId}`)
-      .expectOutputNameContains(`iCON QCON Pro XS${nextExtenderId}`);
-        //.expectInputNameContains(`iCON QCON XS${nextExtenderId} V2.08`)
-        //.expectOutputNameContains(`iCON QCON XS${nextExtenderId} V2.08`);
-      nextExtenderId++;
+      .expectInputNameEquals('iCON QCON Pro XS${nextExtenderId} V2.08')
+      .expectOutputNameEquals('iCON QCON Pro XS${nextExtenderId} V2.08');
     }
   }
 

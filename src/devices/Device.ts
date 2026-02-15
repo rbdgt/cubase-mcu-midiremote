@@ -24,11 +24,12 @@ export abstract class Device {
     globalState: GlobalState,
     timerUtils: TimerUtils,
     isExtender: boolean,
+    portIndex: number,
   ) {
     this.surfaceWidth = deviceSurface.width;
     this.channelElements = deviceSurface.channelElements;
 
-    this.ports = new MidiPortPair(driver, isExtender);
+    this.ports = new MidiPortPair(driver, isExtender, portIndex);
     this.lcdManager = new LcdManager(this, globalState, timerUtils);
 
     if (deviceConfig.colorManager) {

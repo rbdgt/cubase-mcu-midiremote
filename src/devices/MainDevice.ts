@@ -26,6 +26,7 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
     timerUtils: TimerUtils,
     firstChannelIndex: number,
     surfaceXPosition: number,
+    portIndex: number,
   ) {
     // 1. Create Channel Elements (Faders, Encoders, Buttons for 8 strips)
     const channelElements = createElements(8, (index) => {
@@ -56,7 +57,7 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
     const mainSurfaceWidth = channelElementsWidth + 20; // 
     
     // 2. Initialize Parent Device
-    super(driver, firstChannelIndex, { width: mainSurfaceWidth, channelElements }, globalState, timerUtils, false);
+    super(driver, firstChannelIndex, { width: mainSurfaceWidth, channelElements }, globalState, timerUtils, false, portIndex);
 
     // 3. Setup Master Section Text logic [cite: 697, 698]
     this.masterTextManager = new ChannelTextManager(
