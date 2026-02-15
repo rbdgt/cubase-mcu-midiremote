@@ -316,6 +316,10 @@ export class EncoderPage {
       channelTextManager.setParameterNameBuilder(assignment?.encoderParameterNameBuilder);
       channelTextManager.setPushParameterValuePrefix(assignment?.pushToggleParameterPrefix);
       channelTextManager.isParameterChannelRelated = this.config.areAssignmentsChannelRelated;
+
+      // --- NEW LOGIC ---
+      // Force the Track Title row to refresh immediately so the names hide or show instantly
+      channelTextManager.updateTrackTitleDisplay(context);
     }
 
     this.dependencies.globalState.isValueDisplayModeActive.set(context, false);

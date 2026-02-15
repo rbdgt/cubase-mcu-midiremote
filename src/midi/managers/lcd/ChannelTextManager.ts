@@ -18,8 +18,8 @@ const enum LocalValueDisplayMode {
 export class ChannelTextManager {
   //private static readonly channelWidth = deviceConfig.hasIndividualScribbleStrips ? 7 : 6;
   private static readonly channelWidth = 5;
-
-
+  private channelName = new ContextVariable("");
+  private rawChannelName = new ContextVariable("");
 
   private static readonly defaultParameterNameBuilder: EncoderParameterNameBuilder = (
     title1,
@@ -238,7 +238,7 @@ export class ChannelTextManager {
       : this.parameterName.get(context));
   }
 
-  private updateTrackTitleDisplay(context: MR_ActiveDevice) {
+  public updateTrackTitleDisplay(context: MR_ActiveDevice) {
     const row = 1 - +this.globalState.areDisplayRowsFlipped.get(context);
 
     // Skip updating the lower display row on MCU Pro when horizontal metering mode is enabled
@@ -251,7 +251,21 @@ export class ChannelTextManager {
       return;
     }
 
-    this.sendText(context, row, this.channelName.get(context));
+    let textToSend = this.channelName.get(context);
+    
+    // --- UPDATED LOGIC ---
+    // If we are in EQ/Plugin mode, only show the name if it is the Selected Track
+    if (!this.isParameterChannelRelated) {
+      const isSelected = this.rawChannelName.get(context) === this.globalState.selectedTrackName.get(context);
+      if (!isSelected) {
+        textToSend = "       "; // Blank out non-selected tracks
+      }
+    }
+
+    this.sendText(context, row, textToSend);
+    
+    // The secondary displays (above the faders) will still show the channel names
+    // because the faders still control the mixer volumes!
     this.updateSecondaryTrackTitleDisplay(context);
   }
 
@@ -388,6 +402,7 @@ export class ChannelTextManager {
     }
 // If name is empty, ensure we treat it as a string of spaces
     var processedName = (name === "" || name == null) ? "       " : name;
+    this.rawChannelName.set(context, name || "");
     
     if (this.channelName.get(context) === processedName) return;
 
@@ -402,6 +417,8 @@ export class ChannelTextManager {
   onSelectedTrackChange(context: MR_ActiveDevice) {
     if (!this.isParameterChannelRelated) {
       this.onParameterChange(context);
+
+      this.updateTrackTitleDisplay(context);
     }
   }
 
