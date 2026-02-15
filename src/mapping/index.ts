@@ -56,6 +56,7 @@ export function makeHostMapping(
 
       // 4. Fader [cite: 3469]
       page.makeValueBinding(channelElements.fader.mSurfaceValue, channel.mValue.mVolume);
+      page.makeCommandBinding(channelElements.fader.mTouchedValue, "Mixer", "Meters: Reset");
 
       // 5. Peak level display (Specific to your Pro X setup) [cite: 3470]
       if (channelElements.scribbleStrip.meterPeakLevel) {
