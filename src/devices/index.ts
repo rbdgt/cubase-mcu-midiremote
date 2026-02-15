@@ -36,19 +36,22 @@ export function createDevices(
     return device;
   });
 
-  // 2. Shortened Detection logic 
+  // 2. Detection logic with proper extender numbering and port pairing
   const detectionUnit = driver.makeDetectionUnit();
+  let nextExtenderId = 1; // Start extender numbering at 1
 
   for (const device of devices) {
     const portPair = detectionUnit.detectPortPair(device.ports.input, device.ports.output);
+
     if (device instanceof MainDevice) {
       portPair
-        .expectInputNameEquals('iCON QCON Pro X V2.10')
-        .expectOutputNameEquals('iCON QCON Pro X V2.10');
+        .expectInputNameStartsWith(`iCON QCON Pro X `)
+        .expectOutputNameStartsWith(`iCON QCON Pro X `);
     } else {
       portPair
-      .expectInputNameEquals('iCON QCON Pro XS${nextExtenderId} V2.08')
-      .expectOutputNameEquals('iCON QCON Pro XS${nextExtenderId} V2.08');
+        .expectInputNameStartsWith(`iCON QCON Pro XS${nextExtenderId}`)
+        .expectOutputNameStartsWith(`iCON QCON Pro XS${nextExtenderId}`);
+      nextExtenderId++;
     }
   }
 
