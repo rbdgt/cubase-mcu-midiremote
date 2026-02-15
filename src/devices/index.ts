@@ -52,8 +52,8 @@ export function createDevices(
     } else {
       // XS Extender detection string [cite: 481]
       portPair
-      .expectInputNameContains(`QCON XS${nextExtenderId}`)
-      .expectOutputNameContains(`QCON XS${nextExtenderId}`);
+      .expectInputNameContains(`QCON Pro XS${nextExtenderId}`)
+      .expectOutputNameContains(`QCON Pro XS${nextExtenderId}`);
         //.expectInputNameContains(`iCON QCON XS${nextExtenderId} V2.08`)
         //.expectOutputNameContains(`iCON QCON XS${nextExtenderId} V2.08`);
       nextExtenderId++;
