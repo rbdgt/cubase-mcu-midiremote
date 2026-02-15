@@ -383,6 +383,9 @@ export class ChannelTextManager {
   }
 
   onChannelNameChange(context: MR_ActiveDevice, name: string) {
+    if (this.isParameterChannelRelated) {
+      this.onParameterChange(context);
+    }
 // If name is empty, ensure we treat it as a string of spaces
     var processedName = (name === "" || name == null) ? "       " : name;
     

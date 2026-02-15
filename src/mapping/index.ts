@@ -43,29 +43,29 @@ export function makeHostMapping(
     for (let i = 0; i < 2; i++) { 
       // 1. Scribble strips 
       page.makeValueBinding(channelElements.scribbleStrip.trackTitle, channel.mValue.mVolume);
+    }
 
       // 2. VU Meter 
       page.makeValueBinding(channelElements.vuMeter, channel.mValue.mVUMeter);
 
-      // 3. Buttons [cite: 3467]
+      // 3. Buttons
       const buttons = channelElements.buttons;
       page.makeValueBinding(buttons.record.mSurfaceValue, channel.mValue.mRecordEnable).setTypeToggle();
       page.makeValueBinding(buttons.solo.mSurfaceValue, channel.mValue.mSolo).setTypeToggle();
       page.makeValueBinding(buttons.mute.mSurfaceValue, channel.mValue.mMute).setTypeToggle();
       page.makeValueBinding(buttons.select.mSurfaceValue, channel.mValue.mSelected).setTypeToggle();
 
-      // 4. Fader [cite: 3469]
+      // 4. Fader
       page.makeValueBinding(channelElements.fader.mSurfaceValue, channel.mValue.mVolume);
       page.makeCommandBinding(channelElements.fader.mTouchedValue, "Mixer", "Meters: Reset");
 
-      // 5. Peak level display (Specific to your Pro X setup) [cite: 3470]
+      // 5. Peak level display (Specific to your Pro X setup)
       if (channelElements.scribbleStrip.meterPeakLevel) {
         page.makeValueBinding(
           channelElements.scribbleStrip.meterPeakLevel,
           channel.mValue.mVUMeterPeak
         );
       }
-    }
 
     return channel;
   });
