@@ -325,7 +325,8 @@ function bindControlSectionElements(device: MainDevice, globalState: GlobalState
     buttons.timeMode,
 
     ...buttons.function,
-    ...buttons.number,
+    // REPLACED `...buttons.number` with Layer 2 (maps to notes 62-69)
+    ...(device.customElements as any).functionLayer2,
 
     buttons.modify.undo,
     buttons.modify.redo,
@@ -367,7 +368,9 @@ function bindControlSectionElements(device: MainDevice, globalState: GlobalState
 
     buttons.scrub,
   ].entries()) {
-    button.bindToNote(ports, 40 + index);
+    if (button) {
+      button.bindToNote(ports, 40 + index);
+    }
   }
 
   // Segment Display - handled by the SegmentDisplayManager, except for the individual LEDs:

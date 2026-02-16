@@ -100,6 +100,7 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
 
     surface.makeBlindPanel(cx + dx * 1, cy + dy * 0, bw, bh); // Name/Value mockup
     surface.makeBlindPanel(cx + dx * 5, cy + dy * 4, bw, bh); // Motor mockup
+    surface.makeBlindPanel(cx + dx * 1, cy + dy * 1.5, bw, bh); // LAYER 2 mockup
 
 
 
@@ -116,11 +117,12 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
         display: new LedButton(surface),        // Name/Value HIDDEN
         timeMode: new LedButton(surface, { position: [cx + dx * 2, cy, bw, bh] }),       // SMPTE/Beats
 
-        // ROW 2 & 3: Shift and Functions (F1-F8)
+        // ROW 2 & 3: Functions (F1-F8 / F9-F16) - Half height to fit the design and leave room for the secondary layer
         function: createElements(8, (i) => {
             const row = Math.floor(i / 4); // 0 or 1
             const col = (i % 4) + 2;       // 2, 3, 4, 5
-            return new LedButton(surface, { position: [cx + dx * col, cy + dy * (row + 1), bw, bh] });
+            // CHANGE: Multiply bh by 0.45 to make them half-height
+            return new LedButton(surface, { position: [cx + dx * col, cy + dy * (row + 1), bw, bh * 0.5] });
         }),
 
         // ROW 4: Effects / Routing / Page Left
@@ -209,7 +211,19 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
     };
 
     this.controlSectionElements = this.applyControlSectionElementDefaults(surface, partialElements);
-    this.customElements = {} as CustomElements;
+
+    // Register the custom Layer 2 UI elements and the invisible MIDI proxies
+    this.customElements = {
+        // F-KEYS LAYER 2 (Bottom Half)
+        functionLayer2: createElements(8, (i) => {
+            const row = Math.floor(i / 4); 
+            const col = (i % 4) + 2;           
+            // Shifted down slightly to fill the bottom 45% of the space
+            return new LedButton(surface, { position: [cx + dx * col, cy + dy * (row + 1) + (bh * 0.5), bw, bh * 0.5] });
+        }),
+        // Invisible listeners to intercept the hardware press
+        functionProxies: createElements(8, (i) => surface.makeCustomValueVariable(`FKeyProxy_${i}`))
+    } as any;
   }
 
   private applyControlSectionElementDefaults(
