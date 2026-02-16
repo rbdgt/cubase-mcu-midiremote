@@ -16,31 +16,24 @@ const enum LocalValueDisplayMode {
  * Handles the LCD display text of a single channel
  */
 export class ChannelTextManager {
-  //private static readonly channelWidth = deviceConfig.hasIndividualScribbleStrips ? 7 : 6;
-  private static readonly channelWidth = 5;
+  private readonly channelWidth: number;
   private channelName = new ContextVariable("");
   private rawChannelName = new ContextVariable("");
-
-  private static readonly defaultParameterNameBuilder: EncoderParameterNameBuilder = (
-    title1,
-    title2,
-  ) => title2;
-
+  private static readonly defaultParameterNameBuilder: EncoderParameterNameBuilder = (title1, title2) => title2;
   private static nextManagerId = 0;
 
-  /**
-   * Strips any non-ASCII character from the provided string, since devices only support ASCII.
-   **/
-  private static stripNonAsciiCharacters(input: string) {
+  // REMOVED "static" from all these helpers so they can use "this.channelWidth"
+  private stripNonAsciiCharacters(input: string) {
     return input.replace(/[^\x00-\x7F]/g, "");
   }
 
-  private static centerString(input: any, width = 7) {
+  private centerString(input: any) {
     const safeInput = (input === undefined || input === null) ? "" : String(input);
     const trimmed = safeInput.trim();
 
-    const word = trimmed.substring(0, width - 2);
-    const totalPadding = width - word.length; // e.g., for a 3-char word, padding is 4
+    // Use this.channelWidth instead of hardcoded numbers
+    const word = trimmed.substring(0, this.channelWidth); 
+    const totalPadding = this.channelWidth - word.length;
     const leadingSpacesCount = Math.floor(totalPadding / 2);
     const trailingSpacesCount = totalPadding - leadingSpacesCount;
 
@@ -52,120 +45,61 @@ export class ChannelTextManager {
     return result;
   }
 
-  /**
-   * Given a string, returns an abbreviated version of it consisting of at most
-   * `LcdManager.channelWidth` characters.
-   */
-  private static abbreviateString(input: string) {
-    if (input.length < ChannelTextManager.channelWidth) {
+  private abbreviateString(input: string) {
+    if (input.length <= this.channelWidth) {
       return input;
     }
-
-    return abbreviate(input, { length: ChannelTextManager.channelWidth });
+    return abbreviate(input, { length: this.channelWidth });
   }
 
-  private static translateParameterName(parameterName: string) {
+  private translateParameterName(parameterName: string) {
     return (
       {
-        // English
         "Pan Left-Right": "Pan",
-
-        // German
-        "Pan links/rechts": "Pan",
-
-        // Spanish
-        "Pan izquierda-derecha": "Pan",
-
-        // French
-        "Pan gauche-droit": "Pan",
         "Pré/Post": "PrePost",
-
-        // Italian
-        "Pan sinistra-destra": "Pan",
-        Monitoraggio: "Monitor",
-
-        // Japanese
-        左右パン: "Pan",
-        モニタリング: "Monitor",
-        レベル: "Level",
-
-        // Portuguese
-        "Pan Esquerda-Direita": "Pan",
-        Nível: "Nivel",
-        "Pré/Pós": "PrePost",
-
-        // Russian
-        "Панорама Лево-Право": "Pan",
-        Монитор: "Monitor",
-        Уровень: "Level",
-        "Пре/Пост": "PrePost",
-
-        // Chinese
-        "声像 左-右": "Pan",
-        监听: "Monitor",
-        电平: "Level",
-        "前置/后置": "PrePost",
       }[parameterName] ?? parameterName
     );
   }
 
-  private static translateParameterValue(parameterValue: string) {
+  private translateParameterValue(parameterValue: string) {
     return (
       {
-        // French
         Éteint: "Eteint",
-
-        // Japanese
         オン: "On",
         オフ: "Off",
-
-        // Russian
         "Вкл.": "On",
         "Выкл.": "Off",
-
-        // Chinese
         开: "On",
         关: "Off",
       }[parameterValue] ?? parameterValue
     );
   }
 
-  /** A unique number for each `ChannelTextManager` so it can set uniquely identified timeouts */
   private uniqueManagerId = ChannelTextManager.nextManagerId++;
-
-  /** An ID string to uniquely identify the timeouts set by this `ChannelTextManager` */
   private timeoutId = `updateDisplay${this.uniqueManagerId}`;
-
   private parameterName = new ContextVariable("");
   private parameterNameBuilder = ChannelTextManager.defaultParameterNameBuilder;
   private parameterValue = new ContextVariable("");
   private lastParameterValueChangeTime = 0;
-
-  /** The time at which the parameter (not its value) controlled by the encoder last changed */
   private lastParameterChangeTime = 0;
-
   private pushParameterValue = new ContextVariable("");
   private pushParameterValueRaw = new ContextVariable("");
   private pushParameterValuePrefix = "";
-
   private localValueDisplayMode = new ContextVariable(LocalValueDisplayMode.Disabled);
-
-  private channelName = new ContextVariable("");
-
   private meterPeakLevel = new ContextVariable("");
   private faderParameterValue = new ContextVariable("");
   private faderParameterName = new ContextVariable("");
   private isFaderTouched = new ContextVariable(false);
   private isFaderParameterDisplayed = new ContextVariable(false);
-
-  /** Whether the parameter controlled by the channel's encoder belongs to that channel */
   public isParameterChannelRelated = true;
 
   constructor(
     private globalState: GlobalState,
     private timerUtils: TimerUtils,
     private sendText: (context: MR_ActiveDevice, row: number, text: string) => void,
+    channelWidth: number = 5 // Default to 5 characters for normal channels
   ) {
+    this.channelWidth = channelWidth;
     globalState.isValueDisplayModeActive.addOnChangeCallback(
       this.updateNameValueDisplay.bind(this),
     );
@@ -271,7 +205,7 @@ export class ChannelTextManager {
       this.sendText(
         context,
         2,
-        ChannelTextManager.centerString(
+        this.centerString(
           this.isFaderParameterDisplayed.get(context)
             ? this.faderParameterName.get(context)
             : this.channelName.get(context),
@@ -302,7 +236,7 @@ export class ChannelTextManager {
         ? this.faderParameterValue.get(context)
         : this.meterPeakLevel.get(context);
 
-      this.sendText(context, 3, ChannelTextManager.centerString(textToShow));
+      this.sendText(context, 3, this.centerString(textToShow));
     }
   }
 
@@ -322,10 +256,10 @@ export class ChannelTextManager {
 
     this.parameterName.set(
       context,
-      ChannelTextManager.centerString(
-        ChannelTextManager.abbreviateString(
-          ChannelTextManager.stripNonAsciiCharacters(
-            this.parameterNameBuilder(title1, ChannelTextManager.translateParameterName(title2)),
+      this.centerString(
+        this.abbreviateString(
+          this.stripNonAsciiCharacters(
+            this.parameterNameBuilder(title1, this.translateParameterName(title2)),
           ),
         ),
       ),
@@ -340,10 +274,10 @@ export class ChannelTextManager {
 
     this.parameterValue.set(
       context,
-      ChannelTextManager.centerString(
-        ChannelTextManager.abbreviateString(
-          ChannelTextManager.stripNonAsciiCharacters(
-            ChannelTextManager.translateParameterValue(value),
+      this.centerString(
+        this.abbreviateString(
+          this.stripNonAsciiCharacters(
+            this.translateParameterValue(value),
           ),
         ),
       ),
@@ -375,11 +309,11 @@ export class ChannelTextManager {
       // the if block.
       this.pushParameterValue.set(
         context,
-        ChannelTextManager.centerString(
-          ChannelTextManager.abbreviateString(
+        this.centerString(
+          this.abbreviateString(
             this.pushParameterValuePrefix +
-            ChannelTextManager.stripNonAsciiCharacters(
-              ChannelTextManager.translateParameterValue(value),
+            this.stripNonAsciiCharacters(
+              this.translateParameterValue(value),
             ),
           ),
         ),
@@ -399,8 +333,8 @@ export class ChannelTextManager {
     
     if (this.channelName.get(context) === processedName) return;
 
-    var strippedName = ChannelTextManager.abbreviateString(
-        ChannelTextManager.stripNonAsciiCharacters(processedName)
+    var strippedName = this.abbreviateString(
+        this.stripNonAsciiCharacters(processedName)
     );
 
     this.channelName.set(context, strippedName);
@@ -429,14 +363,14 @@ export class ChannelTextManager {
   }
 
   onFaderParameterValueChange(context: MR_ActiveDevice, value: string) {
-    this.faderParameterValue.set(context, ChannelTextManager.stripNonAsciiCharacters(value));
+    this.faderParameterValue.set(context, this.stripNonAsciiCharacters(value));
     if (this.isFaderParameterDisplayed.get(context)) {
       this.updateSupplementaryInfo(context);
     }
   }
 
   onFaderParameterNameChange(context: MR_ActiveDevice, name: string) {
-    const translated = ChannelTextManager.translateParameterName(name);
+    const translated = this.translateParameterName(name);
     const lowerName = translated.toLowerCase();
 
     // Force "Vol" if name is empty, "volume", or "stereo" (typical for Master)

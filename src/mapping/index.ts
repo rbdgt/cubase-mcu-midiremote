@@ -58,7 +58,7 @@ export function makeHostMapping(
       // 4. Fader
       page.makeValueBinding(channelElements.fader.mSurfaceValue, channel.mValue.mVolume);
       page.makeCommandBinding(channelElements.fader.mTouchedValue, "Mixer", "Meters: Reset");
-
+            
       // 5. Peak level display (Specific to your Pro X setup)
       if (channelElements.scribbleStrip.meterPeakLevel) {
         page.makeValueBinding(
@@ -97,9 +97,16 @@ export function makeHostMapping(
         masterManager.onFaderTouchedChange(ctx, Boolean(touched));
       });
 
-      // 4. Bind Master Peak Level to show when fader is not touched
-      mainChannel.mValue.mVUMeterPeak.mOnDisplayValueChange = (ctx, mapping, val) => {
-        masterManager.onMeterPeakLevelChange(ctx, String(val));
+      page.makeCommandBinding(mainFader.mTouchedValue, "Mixer", "Meters: Reset");
+      // --- THE FIX: Bind the Peak Level so Cubase actively sends data! ---
+      page.makeValueBinding(device.masterMeterPeakLevel, mainChannel.mValue.mVUMeterPeak);
+      
+      device.masterMeterPeakLevel.mOnDisplayValueChange = (ctx, val) => {
+        if (!val || val.trim() === "") {
+          masterManager.onMeterPeakLevelChange(ctx, "      ");
+        } else {
+          masterManager.onMeterPeakLevelChange(ctx, String(val));
+        }
       };
 
       // 5. NEW: Initialize the Master text on boot

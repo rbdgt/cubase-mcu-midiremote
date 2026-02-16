@@ -18,6 +18,7 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
   controlSectionElements: ControlSectionSurfaceElements;
   customElements: CustomElements;
   public masterTextManager: ChannelTextManager;
+  public masterMeterPeakLevel: MR_CustomValueVariable;
 
   constructor(
     driver: MR_DeviceDriver,
@@ -68,8 +69,12 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
         const displayRow = row - 2; // Adjust for 0-based index and skipping first 2 rows
         const startIndex = (displayRow * 56) + 50; 
         this.lcdManager.sendText(ctx, startIndex, txt.substring(0, 6), true); // Send to LCD, max 6 chars per line for master section
-      }
+      },
+      6 // <--- NEW: Set the Master display to 6 characters!
     );
+
+    // Create a custom variable for the Master Meter Peak Level to allow binding in the manager
+    this.masterMeterPeakLevel = surface.makeCustomValueVariable("Master Meter Peak Level");
 
     // 4. Define Control Section Elements (Buttons, Jog Wheel, Master Fader)
     const controlX = surfaceXPosition + channelElementsWidth;
