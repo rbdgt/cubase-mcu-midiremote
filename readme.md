@@ -48,7 +48,7 @@ The table below summarizes all available encoder assignments:
 
 **Buttons**
 
-- The 16 Function buttons are unasigned, so you can add whatever function you want. You'll see 16 buttons in the midi remote editor to assign functions to.
+- The 16 Function buttons are unassigned, so you can add whatever function you want. You'll see 16 buttons in the midi remote editor to assign functions to.
 - The Channel Left/Right buttons navigate between encoder assignment pages instead of moving the fader bank left/right by one channel. The latter can be achieved by using the shift-button in combination with the Channel Left/Right buttons.
 - Pressing "Shift + Bank Left" navigates to the first (=leftmost) mixer bank.
 - Pressing "Shift" + "Rewind"/"Forward" moves the cursor to the project's start/end position.
