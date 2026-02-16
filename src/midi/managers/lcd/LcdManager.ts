@@ -47,18 +47,24 @@ export class LcdManager {
 
   // --- NEW METHOD: Draws the 56-character banner ---
   public drawGlobalBanner(context: MR_ActiveDevice, leftText: string, rightText: string) {
-    const isFlipped = this.globalState.areDisplayRowsFlipped.get(context);
-    const row = isFlipped ? 1 : 0; // Top row, unless flipped
-    
-    // Ensure safe strings and leave room (max 45 chars for the track name)
-    const safeLeft = (leftText || "").substring(0, 45); 
+    // 1. THE FIX: Use the exact same row calculation as the Track Titles
+    const row = 1 - +this.globalState.areDisplayRowsFlipped.get(context); 
+
+    // 2. MAIN & EXTENDER BANNER: 
+    // Leave room for a leading space, so 55 usable characters total
+    const safeLeft = (leftText || "").substring(0, 40); 
     const safeRight = (rightText || "");
 
-    // Calculate how many spaces are needed to push the rightText to the far right edge
-    const spacesCount = Math.max(0, 56 - safeLeft.length - safeRight.length);
-    const bannerText = safeLeft + " ".repeat(spacesCount) + safeRight;
+    // Calculate spaces to push rightText to the edge
+    const spacesCount = Math.max(0, 55 - safeLeft.length - safeRight.length);
 
-    // Send the absolute 56-character string starting at the very left edge (index 0 or 56)
+    // We add a " " (space) at the very beginning. 
+    // This matches the `startIndex += 1` offset your QCon uses for the 7-char blocks, 
+    // ensuring no leftover characters get "stuck" when switching back to Pan mode!
+    const bannerText = " " + safeLeft + " ".repeat(spacesCount) + safeRight;
+
+    // Because this method runs for EACH device independently, 
+    // this will now seamlessly broadcast the banner to both the Main unit and the Extender!
     this.sendText(context, row * 56, bannerText.substring(0, 56), false); 
   }
 
