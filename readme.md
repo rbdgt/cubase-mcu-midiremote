@@ -1,4 +1,4 @@
-# cubase-mcu-midiremote
+# Cubase Midiremote for iCON QCon Pro X
 
 [![Latest version](https://img.shields.io/github/package-json/v/bjoluc/cubase-xtouch-midiremote)](https://github.com/bjoluc/cubase-xtouch-midiremote/releases)
 <!-- ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/bjoluc/cubase-xtouch-midiremote/build.yml) -->
