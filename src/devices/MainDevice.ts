@@ -64,9 +64,10 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
       globalState, 
       timerUtils, 
       (ctx, row, txt) => {
-        const displayRow = row > 1 ? row - 2 : row; 
+        if (row < 2) return; // Only display on rows 3 and 4
+        const displayRow = row - 2; // Adjust for 0-based index and skipping first 2 rows
         const startIndex = (displayRow * 56) + 50; 
-        this.lcdManager.sendText(ctx, startIndex, txt.substring(0, 6), row > 1);
+        this.lcdManager.sendText(ctx, startIndex, txt.substring(0, 6), true); // Send to LCD, max 6 chars per line for master section
       }
     );
 

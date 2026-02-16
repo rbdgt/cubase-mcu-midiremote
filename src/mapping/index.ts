@@ -78,7 +78,6 @@ export function makeHostMapping(
   for (const device of devices) {
     if (device instanceof MainDevice) {
       const controlSectionElements = device.controlSectionElements;
-
       const masterManager = device.masterTextManager;
       const mainFader = controlSectionElements.mainFader;
 
@@ -93,24 +92,21 @@ export function makeHostMapping(
       };
 
       // 3. Bind Fader Touch state to trigger the value display
+      // We REMOVED the hardcoded "MASTER" override here, letting the manager do its job!
       mainFader.onTouchedValueChangeCallbacks.addCallback((ctx, touched) => {
-        const isTouched = Boolean(touched);
-        masterManager.onFaderTouchedChange(ctx, isTouched);
-
-        // If released, force the Master label back to the secondary screen
-        if (!isTouched) {
-          device.lcdManager.sendText(ctx, 50, "MASTER", true);
-        } else {
-          // Force "MASTER" back to the hardware slot on release
-          device.lcdManager.sendText(ctx, 50, "MASTER", true);
-        }
+        masterManager.onFaderTouchedChange(ctx, Boolean(touched));
       });
 
       // 4. Bind Master Peak Level to show when fader is not touched
       mainChannel.mValue.mVUMeterPeak.mOnDisplayValueChange = (ctx, mapping, val) => {
         masterManager.onMeterPeakLevelChange(ctx, String(val));
       };
-      // --- END OF NEW MASTER TEXT LOGIC ---
+
+      // 5. NEW: Initialize the Master text on boot
+      lifecycleCallbacks.addActivationCallback((ctx) => {
+        masterManager.onChannelNameChange(ctx, "MASTER");
+        masterManager.onMeterPeakLevelChange(ctx, "      "); // Clear peak display initially
+      });
 
       // Main Fader
       page.makeValueBinding(
