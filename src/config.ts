@@ -45,5 +45,5 @@ var CONFIGURATION = {
   displayColorMode: "none", 
   flipDisplayRowsByDefault: true,
   disableJogWheelZoom: true,
-  mapChannelButtonsToParameterPageNavigation: false,
+  mapChannelButtonsToParameterPageNavigation: true,
 };

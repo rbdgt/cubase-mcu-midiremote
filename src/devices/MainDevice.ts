@@ -101,6 +101,9 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
     surface.makeBlindPanel(cx + dx * 1, cy + dy * 0, bw, bh); // Name/Value mockup
     surface.makeBlindPanel(cx + dx * 5, cy + dy * 4, bw, bh); // Motor mockup
     surface.makeBlindPanel(cx + dx * 1, cy + dy * 1.5, bw, bh); // LAYER 2 mockup
+    surface.makeBlindPanel(cx + dx * 2, cy + dy * 7, bw, bh); // Lock Faders mockup
+    surface.makeBlindPanel(cx + dx * 3, cy + dy * 7, bw, bh); // Switch fader/encoder mockup
+    
 
 
 
@@ -189,6 +192,10 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
                 add: new LedButton(surface, { position: [cx + dx * 3, cy + bh*0.5, bw, bh*0.5] }),// Add
                 next: new LedButton(surface, { position: [cx + dx * 4, cy, bw, bh] }),// Next
             },
+
+            // RENAME AND MOVE THESE HERE:
+            left: new LedButton(surface, { position: [cx + dx * 4, cy + dy *  7, bw, bh] }),  // Goto Left Locator
+            right: new LedButton(surface, { position: [cx + dx * 5, cy + dy *  7, bw, bh] }), // Goto Right Locator
             
             // TRANSPORT BAR
             rewind: new LedButton(surface, { position: [cx, transY, bw, bh] }),
@@ -200,8 +207,6 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
             
             // Fallbacks for buttons the Pro X hardware is missing physically
             punch: new LedButton(surface),
-            left: new LedButton(surface), 
-            right: new LedButton(surface) 
         },
 
         // SCRUB
