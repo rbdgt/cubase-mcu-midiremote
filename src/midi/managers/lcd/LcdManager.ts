@@ -77,7 +77,7 @@ export class LcdManager {
     }
   }
 
-  private sendChannelText(channelIndex: number, context: MR_ActiveDevice, row: number, text: string) {
+private sendChannelText(channelIndex: number, context: MR_ActiveDevice, row: number, text: string) {
   let isSecondaryDisplayRow = false;
   if (row > 1) {
     isSecondaryDisplayRow = true;
@@ -86,34 +86,31 @@ export class LcdManager {
   
   const isMainDevice = !this.device.ports.isExtender;
   let safeText = (text || "       ").toString();
-  while (safeText.length < 7) safeText += " ";
+
+  // Manually pad to 7 characters to avoid the padEnd crash in Cubase's older JS engine
+  while (safeText.length < 7) {
+    safeText += " ";
+  }
 
   if (isMainDevice && isSecondaryDisplayRow) {
-    // Keep your working Secondary Display logic
-    const raw5Chars = safeText.substring(1, 6);
+    // SECONDARY DISPLAY LOGIC (Main Unit Only)
+    // Grab the first 5 characters starting at index 0 (Fixing the chopped first letter!)
+    const raw5Chars = safeText.substring(0, 5);
+    
     const startIndex = (row * 56) + ((channelIndex % 8) * 6) + 2;
+    
     this.sendText(context, startIndex, raw5Chars + " ", true);
   } else {
-    // PRIMARY DISPLAY LOGIC
-    // Base index for Mackie 7-char blocks
+    // PRIMARY DISPLAY LOGIC (And Extender Secondary Display)
     let startIndex = row * 56 + (channelIndex % 8) * 7;
     
-    const isFlipped = this.globalState.areDisplayRowsFlipped.get(context);
-    const isParamRow = isFlipped ? (row === 1) : (row === 0);
+    // Shift BOTH rows by +1 to pull them off the left bezel and align with the knobs
+    startIndex += 1;
 
-    if (isParamRow) {
-      // The parameter row gets the +1 offset to center nicely over the knobs
-      startIndex += 1;
-      
-      // WIPE FIX: Since this row is offset, we must wipe the stuck char at index 0 
-      // (leftover from the global banner) when drawing the far-left channel
-      if (channelIndex % 8 === 0) {
-        safeText = " " + safeText; // Now 8 characters long
-        startIndex -= 1;           // Shift back to index 0 to crush the stuck character
-      }
-    } else {
-      // Track Name row stays cleanly flush against the left bezel (+0 offset)
-      startIndex += 0;
+    // WIPE FIX: Because both rows now have a +1 offset, wipe index 0 for the far-left channel
+    if (channelIndex % 8 === 0) {
+      safeText = " " + safeText; 
+      startIndex -= 1;           
     }
 
     this.sendText(context, startIndex, safeText, isSecondaryDisplayRow);
