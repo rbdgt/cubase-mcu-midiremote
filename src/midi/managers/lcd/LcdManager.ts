@@ -96,27 +96,24 @@ export class LcdManager {
   } else {
     // PRIMARY DISPLAY LOGIC
     // Base index for Mackie 7-char blocks
-    let startIndex = row * 56 + (channelIndex % 8) * 7 ;
-
-    const isFlipped = this.globalState.areDisplayRowsFlipped.get(context);
+    let startIndex = row * 56 + (channelIndex % 8) * 7;
     
-    /**
-      * We want the +1 offset to follow the "Track Names".
-      * In Normal mode (isFlipped = false): Track Names are Row 0.
-      * In Flipped mode (isFlipped = true): Track Names are Row 1.
-      */
+    const isFlipped = this.globalState.areDisplayRowsFlipped.get(context);
     const isParamRow = isFlipped ? (row === 1) : (row === 0);
 
     if (isParamRow) {
-      startIndex += 0;
-    } else{
+      // The parameter row gets the +1 offset to center nicely over the knobs
       startIndex += 1;
-      // If this is the very first channel block (left edge) and we are offset by +1,
-      // prepend a space to the text and pull the start index back to 0 to wipe the stuck character!
+      
+      // WIPE FIX: Since this row is offset, we must wipe the stuck char at index 0 
+      // (leftover from the global banner) when drawing the far-left channel
       if (channelIndex % 8 === 0) {
-        safeText = " " + safeText; // Now 8 characters long (e.g., "  Pan   ")
-        startIndex -= 1;           // Shift back to index 0
+        safeText = " " + safeText; // Now 8 characters long
+        startIndex -= 1;           // Shift back to index 0 to crush the stuck character
       }
+    } else {
+      // Track Name row stays cleanly flush against the left bezel (+0 offset)
+      startIndex += 0;
     }
 
     this.sendText(context, startIndex, safeText, isSecondaryDisplayRow);
