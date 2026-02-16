@@ -43,8 +43,11 @@ export class EncoderPageGroup {
         for (let i = 0; i < assignments.length / encoderPageSize; i++) {
           chunks.push(assignments.slice(i * encoderPageSize, (i + 1) * encoderPageSize));
         }
-        return chunks.map((chunk) => ({
+        
+        // --- UPDATED LOGIC: Add a page number if it was split ---
+        return chunks.map((chunk, index) => ({
           ...page,
+          name: chunks.length > 1 ? `${page.name} ${index + 1}` : page.name,
           assignments: chunk,
         }));
       }

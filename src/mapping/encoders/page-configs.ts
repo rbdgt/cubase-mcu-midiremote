@@ -108,7 +108,7 @@ export const eq = (hostAccess: MR_HostAccess): EncoderPageConfig => {
   const mChannelEQ = hostAccess.mTrackSelection.mMixerChannel.mChannelEQ;
 
   return {
-    name: "EQ",
+    name: "Equalizer",
     assignments: [
       mChannelEQ.mBand1,
       mChannelEQ.mBand2,
@@ -188,6 +188,7 @@ export const sends = (hostAccess: MR_HostAccess): EncoderPageConfig => {
 
 export const vstQuickControls = (hostAccess: MR_HostAccess): EncoderPageConfig => ({
   name: "VST Quick Controls",
+  useDynamicPageName: true, // <-- This tells the EncoderPage to use the page name provided by the plugin (e.g. "ReaComp") instead of the static "VST Quick Controls"
   assignments: () => {
     return {
       encoderParameter:
@@ -305,6 +306,7 @@ export const focusedInsertEffect = (
 
   return {
     name: "Plugin",
+    useDynamicPageName: true, // <-- Use the plugin's actual name as the page name (e.g., "ReaComp" instead of "Plugin")
     assignments: () => {
       const parameterValue = parameterBankZone.makeParameterValue();
       return {

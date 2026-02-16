@@ -69,6 +69,9 @@ export interface EncoderPageConfig {
     pageGroup: EncoderPageGroup,
     mappingDependencies: EncoderMappingDependencies,
   ) => void;
+
+  /** If true, the banner will dynamically follow the plugin's actual name. */
+  useDynamicPageName?: boolean;
 }
 
 interface SubPages {
@@ -110,6 +113,18 @@ export class EncoderPage {
     this.assignments = this.processAssignments(config.assignments);
     this.subPages = this.createSubPages();
     this.bindSubPages();
+
+    // --- NEW LOGIC: Hook up dynamic page naming (e.g., for Plugins) ---
+    const firstEncoder = this.dependencies.channelElements[0].encoder;
+    firstEncoder.mOnEncoderValueTitleChange.addCallback((context, title1, title2) => {
+      if (this.isActive.get(context) && this.config.useDynamicPageName) {
+        // If Cubase provides a plugin name, use it. Otherwise, fall back to "Plugin"
+        const rawName = (title1 && title1.trim() !== "") ? title1 : this.config.name;
+        const dynamicName = rawName.replace(/[^\x00-\x7F]/g, ""); // Strip non-ASCII characters to keep the LCD happy
+        
+        this.dependencies.globalState.activeEncoderPageName.set(context, dynamicName);
+      }
+    });
   }
 
   private processAssignments(

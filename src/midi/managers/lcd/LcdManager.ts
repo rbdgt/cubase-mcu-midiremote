@@ -56,12 +56,12 @@ export class LcdManager {
     const safeRight = (rightText || "");
 
     // Calculate spaces to push rightText to the edge
-    const spacesCount = Math.max(0, 55 - safeLeft.length - safeRight.length);
+    const spacesCount = Math.max(0, 56 - safeLeft.length - safeRight.length);
 
     // We add a " " (space) at the very beginning. 
     // This matches the `startIndex += 1` offset your QCon uses for the 7-char blocks, 
     // ensuring no leftover characters get "stuck" when switching back to Pan mode!
-    const bannerText = " " + safeLeft + " ".repeat(spacesCount) + safeRight;
+    const bannerText = safeLeft + " ".repeat(spacesCount) + safeRight;
 
     // Because this method runs for EACH device independently, 
     // this will now seamlessly broadcast the banner to both the Main unit and the Extender!
@@ -111,6 +111,12 @@ export class LcdManager {
       startIndex += 0;
     } else{
       startIndex += 1;
+      // If this is the very first channel block (left edge) and we are offset by +1,
+      // prepend a space to the text and pull the start index back to 0 to wipe the stuck character!
+      if (channelIndex % 8 === 0) {
+        safeText = " " + safeText; // Now 8 characters long (e.g., "  Pan   ")
+        startIndex -= 1;           // Shift back to index 0
+      }
     }
 
     this.sendText(context, startIndex, safeText, isSecondaryDisplayRow);

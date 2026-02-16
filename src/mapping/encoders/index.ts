@@ -66,7 +66,15 @@ export function bindEncoders(
     // Instrument
     {
       activatorButtonSelector: (device) => selectAssignButtons(device).instrument,
-      pages: [pageConfigs.vstQuickControls(hostAccess), pageConfigs.stripEffects(hostAccess)],
+      pages: [
+        pageConfigs.vstQuickControls(hostAccess), 
+        // --- REPLACE THE BUNDLED "stripEffects" WITH THESE: ---
+        pageConfigs.stripEffectGate(hostAccess),
+        pageConfigs.stripEffectCompressor(hostAccess),
+        pageConfigs.stripEffectTools(hostAccess),
+        pageConfigs.stripEffectSaturator(hostAccess),
+        pageConfigs.stripEffectLimiter(hostAccess)
+      ],
     },
   ];
 
