@@ -98,6 +98,11 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
     surface.makeBlindPanel(cx - 0.5, cy - 0.8, dx * 6.5, dy * 9.8); // Main Matrix panel
     surface.makeBlindPanel(cx - 0.5, transY - 0.8, dx * 6.5, bh * 2); // Transport panel
 
+    surface.makeBlindPanel(cx + dx * 1, cy + dy * 0, bw, bh); // Name/Value mockup
+    surface.makeBlindPanel(cx + dx * 5, cy + dy * 4, bw, bh); // Motor mockup
+
+
+
     const partialElements = {
       mainFader: new TouchSensitiveMotorFader(surface, masterX, 24.4, 1.8, 12),
       mainVuMeters: {
@@ -108,7 +113,7 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
 
       buttons: {
         // ROW 1: Display Mode / DAW Mode
-        display: new LedButton(surface, { position: [cx + dx * 1, cy, bw, bh] }),        // Name/Value
+        display: new LedButton(surface),        // Name/Value HIDDEN
         timeMode: new LedButton(surface, { position: [cx + dx * 2, cy, bw, bh] }),       // SMPTE/Beats
 
         // ROW 2 & 3: Shift and Functions (F1-F8)
@@ -137,11 +142,11 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
                 right: new LedButton(surface, { position: [cx + dx * 5, cy + dy * 8, bw, bh] }), // Right
             },
             directions: {
-                up: new LedButton(surface, { position: [cx + dx * 1, transY + 5, bw, bh] }),
+                up: new LedButton(surface, { position: [cx + dx * 1, transY + 4.5, bw, bh] }),
                 left: new LedButton(surface, { position: [cx, transY + 6, bw, bh] }),
                 center: new LedButton(surface, { position: [cx + dx * 1, transY + 6, bw, bh] }), // Zoom
                 right: new LedButton(surface, { position: [cx + dx * 2, transY + 6, bw, bh] }),
-                down: new LedButton(surface, { position: [cx + dx * 1, transY + 7, bw, bh] }),
+                down: new LedButton(surface, { position: [cx + dx * 1, transY + 7.5, bw, bh] }),
             }
         },
 
@@ -152,7 +157,7 @@ export class MainDevice<CustomElements extends Record<string, any> = {}> extends
             sends: new LedButton(surface, { position: [cx + dx * 2, cy + dy * 4, bw, bh] }),
             project: new LedButton(surface, { position: [cx + dx * 3, cy + dy * 4, bw, bh] }),
             mixer: new LedButton(surface, { position: [cx + dx * 4, cy + dy * 4, bw, bh] }), // Mixer
-            motor: new LedButton(surface, { position: [cx + dx * 5, cy + dy * 4, bw, bh] }), // Motor        
+            motor: new LedButton(surface), // Motor HIDDEN
         },
         
         modify: {
