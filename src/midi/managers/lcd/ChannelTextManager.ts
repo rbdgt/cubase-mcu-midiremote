@@ -1,7 +1,6 @@
 // @ts-expect-error No type defs available
 import abbreviate from "abbreviate";
 import { EncoderParameterNameBuilder } from ".";
-import { LcdManager } from "./LcdManager";
 import { deviceConfig } from "/config";
 import { GlobalState } from "/state";
 import { ContextVariable, TimerUtils } from "/util";
@@ -13,34 +12,42 @@ const enum LocalValueDisplayMode {
 }
 
 /**
- * Handles the LCD display text of a single channel
+ * Handles the LCD display text of a single channel for the iCON QCon Pro X.
+ * Optimized for ES5 and specific hardware readability.
  */
 export class ChannelTextManager {
   private readonly channelWidth: number;
   private channelName = new ContextVariable("");
-  private rawChannelName = new ContextVariable("");
   private static readonly defaultParameterNameBuilder: EncoderParameterNameBuilder = (title1, title2) => title2;
   private static nextManagerId = 0;
 
-  // REMOVED "static" from all these helpers so they can use "this.channelWidth"
+  /**
+   * Standardizes long parameter names to fit the hardware display blocks.
+   */
+  private formatParameterLabel(parameterName: string) {
+    var labels: Record<string, string> = {
+      "Pan Left-Right": "Pan",
+      "Pré/Post": "PrePost"
+    };
+    return labels[parameterName] || parameterName;
+  }
+
   private stripNonAsciiCharacters(input: string) {
     return input.replace(/[^\x00-\x7F]/g, "");
   }
 
   private centerString(input: any) {
-    const safeInput = (input === undefined || input === null) ? "" : String(input);
-    const trimmed = safeInput.trim();
+    var safeInput = (input === undefined || input === null) ? "" : String(input);
+    var trimmed = safeInput.trim();
+    var word = trimmed.substring(0, this.channelWidth);
+    var totalPadding = this.channelWidth - word.length;
+    var leadingSpacesCount = Math.floor(totalPadding / 2);
+    var trailingSpacesCount = totalPadding - leadingSpacesCount;
 
-    // Use this.channelWidth instead of hardcoded numbers
-    const word = trimmed.substring(0, this.channelWidth); 
-    const totalPadding = this.channelWidth - word.length;
-    const leadingSpacesCount = Math.floor(totalPadding / 2);
-    const trailingSpacesCount = totalPadding - leadingSpacesCount;
-
-    let result = "";
-    for (let i = 0; i < leadingSpacesCount; i++) result += " ";
+    var result = "";
+    for (var i = 0; i < leadingSpacesCount; i++) result += " ";
     result += word;
-    for (let i = 0; i < trailingSpacesCount; i++) result += " ";
+    for (var i = 0; i < trailingSpacesCount; i++) result += " ";
 
     return result;
   }
@@ -52,31 +59,8 @@ export class ChannelTextManager {
     return abbreviate(input, { length: this.channelWidth });
   }
 
-  private translateParameterName(parameterName: string) {
-    return (
-      {
-        "Pan Left-Right": "Pan",
-        "Pré/Post": "PrePost",
-      }[parameterName] ?? parameterName
-    );
-  }
-
-  private translateParameterValue(parameterValue: string) {
-    return (
-      {
-        Éteint: "Eteint",
-        オン: "On",
-        オフ: "Off",
-        "Вкл.": "On",
-        "Выкл.": "Off",
-        开: "On",
-        关: "Off",
-      }[parameterValue] ?? parameterValue
-    );
-  }
-
   private uniqueManagerId = ChannelTextManager.nextManagerId++;
-  private timeoutId = `updateDisplay${this.uniqueManagerId}`;
+  private timeoutId = "updateDisplay" + this.uniqueManagerId;
   private parameterName = new ContextVariable("");
   private parameterNameBuilder = ChannelTextManager.defaultParameterNameBuilder;
   private parameterValue = new ContextVariable("");
@@ -97,43 +81,17 @@ export class ChannelTextManager {
     private globalState: GlobalState,
     private timerUtils: TimerUtils,
     private sendText: (context: MR_ActiveDevice, row: number, text: string) => void,
-    channelWidth: number = 5 // Default to 5 characters for normal channels
+    channelWidth: number = 5
   ) {
     this.channelWidth = channelWidth;
-    globalState.isValueDisplayModeActive.addOnChangeCallback(
-      this.updateNameValueDisplay.bind(this),
-    );
+
+    globalState.isValueDisplayModeActive.addOnChangeCallback(this.updateNameValueDisplay.bind(this));
     globalState.areDisplayRowsFlipped.addOnChangeCallback(this.updateNameValueDisplay.bind(this));
     globalState.areDisplayRowsFlipped.addOnChangeCallback(this.updateTrackTitleDisplay.bind(this));
     globalState.selectedTrackName.addOnChangeCallback(this.onSelectedTrackChange.bind(this));
 
     if (deviceConfig.hasSecondaryScribbleStrips) {
-      globalState.isShiftModeActive.addOnChangeCallback(
-        this.updateIsFaderParameterDisplayed.bind(this),
-      );
-    }
-
-    if (DEVICE_NAME === "MCU Pro") {
-      // Handle metering mode changes
-      globalState.isGlobalLcdMeterModeVertical.addOnChangeCallback(
-        (context, isMeterModeVertical) => {
-          // Update the upper display row before leaving vertical metering mode
-          if (!isMeterModeVertical) {
-            (globalState.areDisplayRowsFlipped.get(context)
-              ? this.updateTrackTitleDisplay.bind(this)
-              : this.updateNameValueDisplay.bind(this))(context);
-          }
-        },
-      );
-
-      globalState.areChannelMetersEnabled.addOnChangeCallback((context, areMetersEnabled) => {
-        // Update the lower display row after disabling channel meters
-        if (!areMetersEnabled) {
-          (globalState.areDisplayRowsFlipped.get(context)
-            ? this.updateNameValueDisplay.bind(this)
-            : this.updateTrackTitleDisplay.bind(this))(context);
-        }
-      });
+      globalState.isShiftModeActive.addOnChangeCallback(this.updateIsFaderParameterDisplayed.bind(this));
     }
   }
 
@@ -144,12 +102,7 @@ export class ChannelTextManager {
     this.localValueDisplayMode.set(context, mode);
     this.updateNameValueDisplay(context);
 
-    this.timerUtils.setTimeout(
-      context,
-      this.timeoutId,
-      this.disableLocalValueDisplayMode.bind(this),
-      1,
-    );
+    this.timerUtils.setTimeout(context, this.timeoutId, this.disableLocalValueDisplayMode.bind(this), 1);
   }
 
   private disableLocalValueDisplayMode(context: MR_ActiveDevice) {
@@ -162,44 +115,27 @@ export class ChannelTextManager {
 
   private updateNameValueDisplay(context: MR_ActiveDevice) {
     var row = +this.globalState.areDisplayRowsFlipped.get(context);
-    if (false) {
-        return;
-    }
-    var localValueDisplayMode = this.localValueDisplayMode.get(context);
-    this.sendText(context, row, localValueDisplayMode === 2 /* PushValue */  
-      ? this.pushParameterValue.get(context) : localValueDisplayMode === 1 /* EncoderValue */  
-      || this.globalState.isValueDisplayModeActive.get(context) ? this.parameterValue.get(context) 
-      : this.parameterName.get(context));
+    var localMode = this.localValueDisplayMode.get(context);
+
+    var text = localMode === LocalValueDisplayMode.PushValue 
+      ? this.pushParameterValue.get(context) 
+      : (localMode === LocalValueDisplayMode.EncoderValue || this.globalState.isValueDisplayModeActive.get(context))
+        ? this.parameterValue.get(context) 
+        : this.parameterName.get(context);
+
+    this.sendText(context, row, text);
   }
 
   public updateTrackTitleDisplay(context: MR_ActiveDevice) {
-    const row = 1 - +this.globalState.areDisplayRowsFlipped.get(context);
+    var row = 1 - +this.globalState.areDisplayRowsFlipped.get(context);
 
-    // Skip updating the lower display row on MCU Pro when horizontal metering mode is enabled
-    if (
-      DEVICE_NAME === "MCU Pro" &&
-      row === 1 &&
-      this.globalState.areChannelMetersEnabled.get(context) &&
-      !this.globalState.isGlobalLcdMeterModeVertical.get(context)
-    ) {
-      return;
-    }
-
-    // --- UPDATED LOGIC ---
-    // If we are in Pan/Track mode, draw the 7-character individual track name block.
-    // If we are in EQ/Plugin mode, do NOTHING to the top row. The LcdManager handles the 56-char banner!
     if (this.isParameterChannelRelated) {
       this.sendText(context, row, this.channelName.get(context));
     }
 
-    // Secondary displays always show the individual channel names
     this.updateSecondaryTrackTitleDisplay(context);
   }
 
-  /**
-   * Updates the track title displayed on the first row of the channel's secondary display, if the
-   * device has secondary displays.
-   */
   private updateSecondaryTrackTitleDisplay(context: MR_ActiveDevice) {
     if (deviceConfig.hasSecondaryScribbleStrips) {
       this.sendText(
@@ -215,24 +151,17 @@ export class ChannelTextManager {
   }
 
   private updateIsFaderParameterDisplayed(context: MR_ActiveDevice) {
-    const previousValue = this.isFaderParameterDisplayed.get(context);
-    const newValue =
-      this.isFaderTouched.get(context) && !this.globalState.isShiftModeActive.get(context);
-
-    if (newValue !== previousValue) {
+    var newValue = this.isFaderTouched.get(context) && !this.globalState.isShiftModeActive.get(context);
+    if (newValue !== this.isFaderParameterDisplayed.get(context)) {
       this.isFaderParameterDisplayed.set(context, newValue);
       this.updateSecondaryTrackTitleDisplay(context);
       this.updateSupplementaryInfo(context);
     }
   }
 
-  /**
-   * Updates the string displayed on the second row of the channel's secondary display, if the
-   * device has secondary displays.
-   */
   private updateSupplementaryInfo(context: MR_ActiveDevice) {
     if (deviceConfig.hasSecondaryScribbleStrips) {
-      const textToShow = this.isFaderParameterDisplayed.get(context)
+      var textToShow = this.isFaderParameterDisplayed.get(context)
         ? this.faderParameterValue.get(context)
         : this.meterPeakLevel.get(context);
 
@@ -249,39 +178,24 @@ export class ChannelTextManager {
   }
 
   onParameterTitleChange(context: MR_ActiveDevice, title1: string, title2: string) {
-    // Luckily, `onParameterTitleChange` runs after `onParameterDisplayValueChange`, so disabling
-    // `localValueDisplayMode` here overwrites the `EncoderValue` mode that
-    // `onParameterDisplayValueChange` sets
     this.localValueDisplayMode.set(context, LocalValueDisplayMode.Disabled);
-
     this.parameterName.set(
       context,
       this.centerString(
         this.abbreviateString(
           this.stripNonAsciiCharacters(
-            this.parameterNameBuilder(title1, this.translateParameterName(title2)),
-          ),
-        ),
-      ),
+            this.parameterNameBuilder(title1, this.formatParameterLabel(title2))
+          )
+        )
+      )
     );
-
     this.updateNameValueDisplay(context);
   }
 
   onParameterDisplayValueChange(context: MR_ActiveDevice, value: string) {
-    const now = performance.now();
+    var now = performance.now();
     this.lastParameterValueChangeTime = now;
-
-    this.parameterValue.set(
-      context,
-      this.centerString(
-        this.abbreviateString(
-          this.stripNonAsciiCharacters(
-            this.translateParameterValue(value),
-          ),
-        ),
-      ),
-    );
+    this.parameterValue.set(context, this.centerString(this.abbreviateString(this.stripNonAsciiCharacters(value))));
 
     if (this.globalState.isValueDisplayModeActive.get(context)) {
       this.updateNameValueDisplay(context);
@@ -291,34 +205,15 @@ export class ChannelTextManager {
   }
 
   onPushParameterDisplayValueChange(context: MR_ActiveDevice, value: string) {
-    const lastValue = this.pushParameterValueRaw.get(context);
+    var lastValue = this.pushParameterValueRaw.get(context);
     this.pushParameterValueRaw.set(context, value);
-    const now = performance.now();
+    var now = performance.now();
 
-    // Avoid reacting to display value changes when they are caused by switching to or from an
-    // undefined host value or by switching encoder assignments or tracks (i.e. if this callback
-    // runs up to 100 ms after these values were changed).
-    if (
-      value !== "" &&
-      lastValue !== "" &&
-      now > this.lastParameterValueChangeTime + 100 &&
-      now > this.lastParameterChangeTime + 100
-    ) {
-      // The only way push parameter values are ever displayed is by calling
-      // `enableLocalValueDisplayMode` below. Hence, we only update `this.pushParameterValue` inside
-      // the if block.
+    if (value !== "" && lastValue !== "" && now > this.lastParameterValueChangeTime + 100 && now > this.lastParameterChangeTime + 100) {
       this.pushParameterValue.set(
         context,
-        this.centerString(
-          this.abbreviateString(
-            this.pushParameterValuePrefix +
-            this.stripNonAsciiCharacters(
-              this.translateParameterValue(value),
-            ),
-          ),
-        ),
+        this.centerString(this.abbreviateString(this.pushParameterValuePrefix + this.stripNonAsciiCharacters(value))),
       );
-
       this.enableLocalValueDisplayMode(context, LocalValueDisplayMode.PushValue);
     }
   }
@@ -327,29 +222,20 @@ export class ChannelTextManager {
     if (this.isParameterChannelRelated) {
       this.onParameterChange(context);
     }
-// If name is empty, ensure we treat it as a string of spaces
+
     var processedName = (name === "" || name == null) ? "       " : name;
-    this.rawChannelName.set(context, name || "");
-    
     if (this.channelName.get(context) === processedName) return;
 
-    var strippedName = this.abbreviateString(
-        this.stripNonAsciiCharacters(processedName)
-    );
-
-    this.channelName.set(context, strippedName);
+    this.channelName.set(context, this.abbreviateString(this.stripNonAsciiCharacters(processedName)));
     this.updateTrackTitleDisplay(context);
   }
 
   onSelectedTrackChange(context: MR_ActiveDevice) {
     if (!this.isParameterChannelRelated) {
       this.onParameterChange(context);
-
-      //this.updateTrackTitleDisplay(context);
     }
   }
 
-  /** This callback is not called externally, but only from within this class */
   onParameterChange(context: MR_ActiveDevice) {
     this.lastParameterChangeTime = performance.now();
     this.disableLocalValueDisplayMode(context);
@@ -370,13 +256,13 @@ export class ChannelTextManager {
   }
 
   onFaderParameterNameChange(context: MR_ActiveDevice, name: string) {
-    const translated = this.translateParameterName(name);
-    const lowerName = translated.toLowerCase();
+    var cleanName = this.stripNonAsciiCharacters(this.formatParameterLabel(name));
+    var lowerName = cleanName.toLowerCase();
 
-    // Force "Vol" if name is empty, "volume", or "stereo" (typical for Master)
-    let shortName = "Vol";
+    // Use "Vol" as a standard fallback for volume parameters [cite: 786, 787]
+    var shortName = "Vol";
     if (name !== "" && lowerName.indexOf("volume") === -1 && lowerName.indexOf("stereo") === -1) {
-      shortName = translated.substring(0, 3);
+      shortName = cleanName.substring(0, 3);
     }
 
     this.faderParameterName.set(context, shortName);
