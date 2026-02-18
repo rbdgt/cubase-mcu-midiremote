@@ -1,22 +1,44 @@
 import { Simplify } from "type-fest";
+import { MainDevice } from "./devices/MainDevice";
+
+export interface ChannelVisibility {
+  audio: boolean;
+  instrument: boolean;
+  sampler: boolean;
+  midi: boolean;
+  fx: boolean;
+  group: boolean;
+  vca: boolean;
+  input: boolean;
+  output: boolean;
+}
 
 export type ScriptConfiguration = {
-    devices: Array<"main" | "extender">;
-    displayColorMode: "encoders" | "channels" | "none";
-    enableAutoSelect: boolean;
-    mapMainFaderToControlRoom: boolean;
-    resetPanOnEncoderPush: boolean;
-    channelVisibility: any;
-    flipDisplayRowsByDefault: boolean;
-    disableJogWheelZoom: boolean;
-    mapChannelButtonsToParameterPageNavigation: boolean;
+  devices: Array<"main" | "extender">;
+  enableAutoSelect: boolean;
+  mapMainFaderToControlRoom: boolean;
+  resetPanOnEncoderPush: boolean;
+  channelVisibility: ChannelVisibility;
+  flipDisplayRowsByDefault: boolean;
+  disableJogWheelZoom: boolean;
+  mapChannelButtonsToParameterPageNavigation: boolean;
 };
 
-// Add this "stub" to stop the import errors
-export const deviceConfig: any = {
+export interface DeviceConfig {
+  hasIndividualScribbleStrips: boolean;
+  hasSecondaryScribbleStrips: boolean;
+  maximumMeterValue: number;
+  enhanceMapping?: (args: any) => void;
+  configureEncoderMappings?: (configs: any[], page: MR_FactoryMappingPage) => any[];
+  getMouseValueModeButton?: (device: MainDevice) => MR_Button | undefined;
+  shallMouseValueModeMapAllEncoders?: boolean;
+  getSupplementaryShiftButtons?: (device: MainDevice) => any[];
+}
+
+export const deviceConfig: DeviceConfig = {
   hasIndividualScribbleStrips: true,
   hasSecondaryScribbleStrips: true,
-  maximumMeterValue: 0xd // Keep the Pro X specific meter scaling
+  maximumMeterValue: 0xd // Keep the Pro X specific meter scaling [cite: 734]
 };
 
 // @ts-expect-error CONFIGURATION is defined below the BEGIN JS marker
@@ -42,7 +64,6 @@ var CONFIGURATION = {
     input: false,
     output: false,
   },
-  displayColorMode: "none", 
   flipDisplayRowsByDefault: true,
   disableJogWheelZoom: true,
   mapChannelButtonsToParameterPageNavigation: true,

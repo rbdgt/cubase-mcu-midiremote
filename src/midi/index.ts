@@ -1,4 +1,3 @@
-import { RgbColor } from "./managers/colors/ColorManager";
 import { SegmentDisplayManager } from "./managers/SegmentDisplayManager";
 import { sendChannelMeterMode, sendGlobalMeterModeOrientation, sendMeterLevel } from "./util";
 import { config, deviceConfig } from "/config";
@@ -14,7 +13,7 @@ export function bindDevicesToMidi(
   timerUtils: TimerUtils
 ) {
   const segmentDisplayManager = new SegmentDisplayManager(devices);
-
+  
   lifecycleCallbacks.addDeactivationCallback((context) => {
     segmentDisplayManager.clearAssignment(context);
     segmentDisplayManager.clearTime(context);
@@ -23,7 +22,6 @@ export function bindDevicesToMidi(
   for (const device of devices) {
     bindLifecycleEvents(device, lifecycleCallbacks);
     bindChannelElements(device, globalState, timerUtils, lifecycleCallbacks);
-
     if (device instanceof MainDevice) {
       bindControlSectionElements(device, globalState, timerUtils, lifecycleCallbacks);
     }
@@ -34,7 +32,6 @@ export function bindDevicesToMidi(
 
 function bindLifecycleEvents(device: Device, lifecycleCallbacks: LifecycleCallbacks) {
   const output = device.ports.output;
-
   const resetLeds = (context: MR_ActiveDevice) => {
     for (let note = 0; note < 0x76; note++) {
       output.sendNoteOn(context, note, 0);
@@ -43,29 +40,22 @@ function bindLifecycleEvents(device: Device, lifecycleCallbacks: LifecycleCallba
 
   lifecycleCallbacks.addActivationCallback((context) => {
     resetLeds(context);
-
-    // Send an initial (all-black by default) color message to the device. Otherwise, in projects
-    // without enough channels for each device, devices without channels assigned to them would
-    // not receive a color update at all, leaving their displays white although they should be
-    // black.
-    device.colorManager?.sendColors(context);
   });
 
   lifecycleCallbacks.addDeactivationCallback((context) => {
-    device.colorManager?.resetColors(context);
-    // SAFETY CHECK: Ensure lcdManager exists before calling
+    // SAFETY CHECK: Ensure lcdManager exists before calling [cite: 1154]
     if (device.lcdManager && typeof device.lcdManager.clearDisplays === 'function') {
       device.lcdManager.clearDisplays(context);
     }
 
-    // Reset faders
+    // Reset faders [cite: 1154]
     for (let faderIndex = 0; faderIndex < 9; faderIndex++) {
       output.sendMidi(context, [0xe0 + faderIndex, 0, 0]);
     }
 
     resetLeds(context);
 
-    // Reset encoder LED rings
+    // Reset encoder LED rings [cite: 1154]
     for (let encoderIndex = 0; encoderIndex < 8; encoderIndex++) {
       output.sendMidi(context, [0xb0, 0x30 + encoderIndex, 0]);
     }
@@ -80,41 +70,39 @@ function bindVuMeter(
   timerUtils: TimerUtils, 
   lifecycleCallbacks: LifecycleCallbacks
 ) {
-  let lastSentLevel = -1; // Initialize to -1 to indicate that no level has been sent yet
+  let lastSentLevel = -1; // Initialize to -1 to indicate that no level has been sent yet [cite: 1156, 1157]
   let isMeterUnassigned = false;
-  var sendLevel = function (context, level) {
+  
+  var sendLevel = function (context: MR_ActiveDevice, level: number) {
     outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + level]);
     lastSentLevel = level;
-    };
-
+  };
 
   vuMeter.mOnProcessValueChange = function (context, newValue) {
     if (!isMeterUnassigned || newValue === 0) {
-      // SCALING FOR 12 SEGMENTS (0-11)
-      const sensitivityScalar = 12; 
-      const offsetCorrection = 0; // Stronger negative offset to clear bottom LEDs
+      // SCALING FOR 12 SEGMENTS (0-11) [cite: 1159]
+      const sensitivityScalar = 12;
+      const offsetCorrection = 0; // Stronger negative offset to clear bottom LEDs [cite: 1160]
 
       const meterLevel = Math.ceil(
         (1 + Math.log10(0.1 + 0.9 * (1 + Math.log10(0.1 + 0.9 * newValue)))) * sensitivityScalar + offsetCorrection
       );
-
-      // Final clamp for 12 segments
+      // Final clamp for 12 segments [cite: 1161]
       const clampedLevel = Math.max(0, Math.min(12, meterLevel));
       sendLevel(context, clampedLevel);
     }
-    var triggerRefresh = function (context) {
-    if (!isMeterUnassigned && lastSentLevel >= 0) {
-        outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + lastSentLevel]);
-    }
-    // Change 0.1 to 0.2 to give the MIDI port more breathing room
-    timerUtils.setTimeout(context, refreshId, triggerRefresh, 1); 
+    var triggerRefresh = function (context: MR_ActiveDevice) {
+      if (!isMeterUnassigned && lastSentLevel >= 0) {
+          outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + lastSentLevel]);
+      }
+      timerUtils.setTimeout(context, refreshId, triggerRefresh, 1);
     };
   };
 
-  // Start a timer to refresh the meter level every 100ms, preventing the hardware from dimming the LEDs
+  // Start a timer to refresh the meter level every 100ms, preventing the hardware from dimming the LEDs [cite: 1164]
   var refreshId = "meterRefresh_" + meterId + "_" + midiChannel;
-  var triggerRefresh = function (context) {
-    // Only refresh if we have a valid level (>= 0) and fader is assigned
+  var triggerRefresh = function (context: MR_ActiveDevice) {
+    // Only refresh if we have a valid level (>= 0) and fader is assigned [cite: 1165]
     if (!isMeterUnassigned && lastSentLevel >= 0) {
       outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + lastSentLevel]);
     }
@@ -124,9 +112,9 @@ function bindVuMeter(
   lifecycleCallbacks.addActivationCallback(function (context) {
     triggerRefresh(context);
   });
-
+  
   return {
-    setIsMeterUnassigned: function (context, isUnassigned) {
+    setIsMeterUnassigned: function (context: MR_ActiveDevice, isUnassigned: boolean) {
       isMeterUnassigned = isUnassigned;
       if (isUnassigned) sendLevel(context, 0);
     }
@@ -137,53 +125,12 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
   const ports = device.ports;
 
   for (const [channelIndex, channel] of device.channelElements.entries()) {
-    // Push Encoder
+    // Push Encoder [cite: 1169]
     channel.encoder.bindToMidi(ports, channelIndex);
 
-    // // Display colors
-    // if (deviceConfig.colorManager) {
-    //   const encoderColor = new ContextVariable({ isAssigned: false, r: 0, g: 0, b: 0 });
-    //   channel.encoder.mEncoderValue.mOnColorChange = (context, r, g, b, _a, isAssigned) => {
-    //     encoderColor.set(context, { isAssigned, r, g, b });
-    //     updateColor(context);
-    //   };
-
-    //   const channelColor = new ContextVariable({ isAssigned: false, r: 0, g: 0, b: 0 });
-    //   channel.scribbleStrip.trackTitle.mOnColorChange = (context, r, g, b, _a, isAssigned) => {
-    //     channelColor.set(context, { isAssigned, r, g, b });
-    //     updateColor(context);
-    //   };
-
-    //   var updateColor = (context: MR_ActiveDevice) => {
-    //     let color: RgbColor;
-    //     const currentEncoderColor = encoderColor.get(context);
-    //     const currentChannelColor = channelColor.get(context);
-
-    //     if (config.displayColorMode === "encoders") {
-    //       // Fall back to channel color if encoder is not assigned
-    //       color = currentEncoderColor.isAssigned ? currentEncoderColor : currentChannelColor;
-    //     } else if (config.displayColorMode === "channels") {
-    //       color = currentChannelColor;
-
-    //       // Use white if an encoder has a color but the channel has none. Otherwise, encoder titles
-    //       // on unassigned channels would not be readable.
-    //       if (!currentChannelColor.isAssigned && currentEncoderColor.isAssigned) {
-    //         color = { r: 1, g: 1, b: 1 };
-    //       }
-    //     } else {
-    //       color =
-    //         currentChannelColor.isAssigned || currentEncoderColor.isAssigned
-    //           ? { r: 1, g: 1, b: 1 }
-    //           : { r: 0, g: 0, b: 0 };
-    //     }
-
-    //     device.colorManager?.setChannelColorRgb(context, channelIndex, color);
-    //   };
-    // }
-
-    // Scribble Strip
+    // Scribble Strip [cite: 1187]
     const channelTextManager = device.lcdManager.channelTextManagers[channelIndex];
-
+    
     channel.encoder.mOnEncoderValueTitleChange.addCallback((context, title1, title2) => {
       if (!title1 || title1.trim() === "") {
         channelTextManager.onParameterTitleChange(context, "       ", "       ");
@@ -191,7 +138,7 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
         channelTextManager.onParameterTitleChange(context, title1, title2);
       }
     });
-
+    
     channel.encoder.mEncoderValue.mOnDisplayValueChange = (context, value) => {
       if (!value || value.trim() === "") {
         channelTextManager.onParameterDisplayValueChange(context, "       ");
@@ -199,7 +146,7 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
         channelTextManager.onParameterDisplayValueChange(context, value);
       }
     };
-
+    
     channel.encoder.mPushValue.mOnDisplayValueChange = (context, value) => {
       if (!value || value.trim() === "") {
         channelTextManager.onPushParameterDisplayValueChange(context, "       ");
@@ -207,14 +154,14 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
         channelTextManager.onPushParameterDisplayValueChange(context, value);
       }
     };
-
+    
     channel.scribbleStrip.trackTitle.mOnTitleChange = (context, title, title2) => {
-      // If title2 is empty, it means the channel is no longer assigned to a track 
-      const isUnassigned = title2 === ""; 
+      // If title2 is empty, it means the channel is no longer assigned to a track [cite: 1193]
+      const isUnassigned = title2 === "";
       
       if (isUnassigned) {
-        // Force the display to be empty for this channel [cite: 3001]
-        channelTextManager.onChannelNameChange(context, "       "); 
+        // Force the display to be empty for this channel [cite: 1194]
+        channelTextManager.onChannelNameChange(context, "       ");
         channelTextManager.onParameterTitleChange(context, " ", " ");
         channelTextManager.onParameterDisplayValueChange(context, " ");
       } else {
@@ -222,7 +169,7 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
       }
 
       setIsMeterUnassigned(context, isUnassigned);
-  };
+    };
 
     if (deviceConfig.hasSecondaryScribbleStrips && channel.scribbleStrip.meterPeakLevel) {
       channel.scribbleStrip.meterPeakLevel.mOnDisplayValueChange = (context, value) => {
@@ -248,7 +195,7 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
           channelTextManager.onFaderParameterNameChange(context, parameterName);
         }
       });
-
+      
       channel.fader.onTouchedValueChangeCallbacks.addCallback((context, isFaderTouched) => {
         channelTextManager.onFaderTouchedChange(context, Boolean(isFaderTouched));
       });
@@ -259,7 +206,7 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
       sendMeterLevel(context, ports.output, channelIndex, 0xf);
     };
 
-    // VU Meter
+    // VU Meter [cite: 1203]
     const setIsMeterUnassigned = bindVuMeter(channel.vuMeter, ports.output, channelIndex, 0, timerUtils, lifecycleCallbacks).setIsMeterUnassigned;
 
     globalState.areChannelMetersEnabled.addOnChangeCallback(
@@ -268,7 +215,7 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
       },
       0, // priority = 0: Disable channel meters *before* updating the lower display row
     );
-
+    
     globalState.shouldMeterOverloadsBeCleared.addOnChangeCallback(
       (context, shouldOverloadsBeCleared) => {
         if (shouldOverloadsBeCleared) {
@@ -276,8 +223,8 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
         }
       },
     );
-
-    // Channel Buttons
+    
+    // Channel Buttons [cite: 1206]
     const buttons = channel.buttons;
     for (const [row, button] of [
       buttons.record,
@@ -288,11 +235,11 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
       button.bindToNote(ports, row * 8 + channelIndex);
     }
 
-    // Fader
+    // Fader [cite: 1208]
     channel.fader.bindToMidi(ports, channelIndex, globalState);
   }
 
-  // Handle metering mode changes (globally)
+  // Handle metering mode changes (globally) [cite: 1209]
   globalState.isGlobalLcdMeterModeVertical.addOnChangeCallback((context, isMeterModeVertical) => {
     sendGlobalMeterModeOrientation(context, ports.output, isMeterModeVertical);
   });
@@ -300,7 +247,6 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
 
 function bindControlSectionElements(device: MainDevice, globalState: GlobalState, timerUtils: TimerUtils, lifecycleCallbacks: LifecycleCallbacks) {
   const ports = device.ports;
-
   const elements = device.controlSectionElements;
   const buttons = elements.buttons;
 
@@ -325,7 +271,7 @@ function bindControlSectionElements(device: MainDevice, globalState: GlobalState
     buttons.timeMode,
 
     ...buttons.function,
-    // REPLACED `...buttons.number` with Layer 2 (maps to notes 62-69)
+    // REPLACED `...buttons.number` with Layer 2 (maps to notes 62-69) [cite: 1211]
     ...(device.customElements as any).functionLayer2,
 
     buttons.modify.undo,
@@ -373,24 +319,24 @@ function bindControlSectionElements(device: MainDevice, globalState: GlobalState
     }
   }
 
-  // Segment Display - handled by the SegmentDisplayManager, except for the individual LEDs:
+  // Segment Display - handled by the SegmentDisplayManager, except for the individual LEDs: [cite: 1214]
   const { smpte, beats, solo } = elements.displayLeds;
   [smpte, beats, solo].forEach((lamp, index) => {
     lamp.bindToNote(ports.output, 0x71 + index);
   });
-
-  // Jog wheel
+  
+  // Jog wheel [cite: 1216]
   elements.jogWheel.bindToControlChange(ports.input, 0x3c);
 
-  // Foot control
+  // Foot control [cite: 1216]
   elements.footSwitch1.mSurfaceValue.mMidiBinding.setInputPort(ports.input).bindToNote(0, 0x66);
   elements.footSwitch2.mSurfaceValue.mMidiBinding.setInputPort(ports.input).bindToNote(0, 0x67);
   elements.expressionPedal.mSurfaceValue.mMidiBinding
     .setInputPort(ports.input)
     .bindToControlChange(0, 0x2e)
     .setTypeAbsolute();
-
-  // Main VU Meters
+    
+  // Main VU Meters [cite: 1218]
   if (elements.mainVuMeters) {
     // Meter ID 0 = Left, ID 1 = Right
     // The '1' at the end specifies MIDI Channel 2

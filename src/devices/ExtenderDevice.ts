@@ -5,10 +5,15 @@ import { LedPushEncoder } from "../decorators/surface-elements/LedPushEncoder";
 import { GlobalState } from "/state";
 import { TimerUtils, createElements } from "/util";
 
-// QCon Pro X / XS specific hardware constants [cite: 476, 477]
-const channelWidth = 3.75; 
-const buttonRowHeight = 2.35;
-const surfaceHeight = 39.5;
+// Single source of truth for channel strip UI dimensions
+export const ChannelLayout = {
+  width: 3.75,
+  btnHSpacing: 2.35,
+  encoder: { y: 8.8, w: 3.6, h: 3.6, offsetX: 3.1 },
+  display: { y: 3, w: 3.75, h: 2, offsetX: 3.1 },
+  buttons: { startY: 13, w: 1.8, h: 1.5, offsetX: 4 },
+  fader:   { y: 24.4, w: 1.8, h: 12, offsetX: 4 }
+};
 
 export class ExtenderDevice extends Device {
   constructor(
@@ -20,14 +25,15 @@ export class ExtenderDevice extends Device {
     surfaceXPosition: number,
     portIndex: number,
   ) {
-    // 1. Create Functional & Visual Channel Elements [cite: 478, 479]
     const channelElements = createElements(8, (index) => {
-      const currentX = surfaceXPosition + index * channelWidth;
-      const encoder = new LedPushEncoder(surface, 3.1 + currentX, 8.8, 3.6, 3.6);
+      const currentX = surfaceXPosition + index * ChannelLayout.width;
+      const encX = currentX + ChannelLayout.encoder.offsetX;
+      const btnX = currentX + ChannelLayout.buttons.offsetX;
+
+      const encoder = new LedPushEncoder(surface, encX, ChannelLayout.encoder.y, ChannelLayout.encoder.w, ChannelLayout.encoder.h);
       
-      // VISUAL FIX: Add label fields so Cubase draws the LCD screens [cite: 443, 604]
       // Primary Display row
-      surface.makeLabelField(3.1 + currentX, 3, 3.75, 2).relateTo(encoder); 
+      surface.makeLabelField(currentX + ChannelLayout.display.offsetX, ChannelLayout.display.y, ChannelLayout.display.w, ChannelLayout.display.h).relateTo(encoder); 
 
       return {
         index,
@@ -38,25 +44,16 @@ export class ExtenderDevice extends Device {
         },
         vuMeter: surface.makeCustomValueVariable("vuMeter"),
         buttons: {
-          record: new LedButton(surface, { position: [4 + currentX, 13, 1.8, 1.5], isChannelButton: true }),
-          solo: new LedButton(surface, { position: [4 + currentX, 13 + buttonRowHeight, 1.8, 1.5], isChannelButton: true }),
-          mute: new LedButton(surface, { position: [4 + currentX, 13 + buttonRowHeight * 2, 1.8, 1.5], isChannelButton: true }),
-          select: new LedButton(surface, { position: [4 + currentX, 13 + buttonRowHeight * 3, 1.8, 1.5], isChannelButton: true }),
+          record: new LedButton(surface, { position: [btnX, ChannelLayout.buttons.startY, ChannelLayout.buttons.w, ChannelLayout.buttons.h], isChannelButton: true }),
+          solo: new LedButton(surface, { position: [btnX, ChannelLayout.buttons.startY + ChannelLayout.btnHSpacing, ChannelLayout.buttons.w, ChannelLayout.buttons.h], isChannelButton: true }),
+          mute: new LedButton(surface, { position: [btnX, ChannelLayout.buttons.startY + ChannelLayout.btnHSpacing * 2, ChannelLayout.buttons.w, ChannelLayout.buttons.h], isChannelButton: true }),
+          select: new LedButton(surface, { position: [btnX, ChannelLayout.buttons.startY + ChannelLayout.btnHSpacing * 3, ChannelLayout.buttons.w, ChannelLayout.buttons.h], isChannelButton: true }),
         },
-        fader: new TouchSensitiveMotorFader(surface, 4 + currentX, 24.4, 1.8, 12),
+        fader: new TouchSensitiveMotorFader(surface, btnX, ChannelLayout.fader.y, ChannelLayout.fader.w, ChannelLayout.fader.h),
       };
     });
 
-    const extenderWidth = (8 * channelWidth) + 3.1;
-
-    // 2. Initialize parent device
+    const extenderWidth = (8 * ChannelLayout.width) + 3.1;
     super(driver, firstChannelIndex, { width: extenderWidth, channelElements }, globalState, timerUtils, true, portIndex);
-    
-    // VISUAL FIX: Define the chassis background [cite: 387, 448]
-    // This removes the "black square" by defining a frame for the device
-    // surface.makeBlindPanel(surfaceXPosition, 0, extenderWidth, surfaceHeight);
-
-    // VISUAL FIX: Add the silver display bar common to iCON devices [cite: 449, 453]
-    // surface.makeBlindPanel(surfaceXPosition + 1.5, 1.5, extenderWidth - 3, 5);
   }
 }

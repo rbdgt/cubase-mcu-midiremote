@@ -45,27 +45,27 @@ export function makeHostMapping(
       page.makeValueBinding(channelElements.scribbleStrip.trackTitle, channel.mValue.mVolume);
     }
 
-      // 2. VU Meter 
-      page.makeValueBinding(channelElements.vuMeter, channel.mValue.mVUMeter);
+    // 2. VU Meter 
+    page.makeValueBinding(channelElements.vuMeter, channel.mValue.mVUMeter);
 
-      // 3. Buttons
-      const buttons = channelElements.buttons;
-      page.makeValueBinding(buttons.record.mSurfaceValue, channel.mValue.mRecordEnable).setTypeToggle();
-      page.makeValueBinding(buttons.solo.mSurfaceValue, channel.mValue.mSolo).setTypeToggle();
-      page.makeValueBinding(buttons.mute.mSurfaceValue, channel.mValue.mMute).setTypeToggle();
-      page.makeValueBinding(buttons.select.mSurfaceValue, channel.mValue.mSelected).setTypeToggle();
+    // 3. Buttons
+    const buttons = channelElements.buttons;
+    page.makeValueBinding(buttons.record.mSurfaceValue, channel.mValue.mRecordEnable).setTypeToggle();
+    page.makeValueBinding(buttons.solo.mSurfaceValue, channel.mValue.mSolo).setTypeToggle();
+    page.makeValueBinding(buttons.mute.mSurfaceValue, channel.mValue.mMute).setTypeToggle();
+    page.makeValueBinding(buttons.select.mSurfaceValue, channel.mValue.mSelected).setTypeToggle();
 
-      // 4. Fader
-      page.makeValueBinding(channelElements.fader.mSurfaceValue, channel.mValue.mVolume);
-      page.makeCommandBinding(channelElements.fader.mTouchedValue, "Mixer", "Meters: Reset");
-            
-      // 5. Peak level display (Specific to your Pro X setup)
-      if (channelElements.scribbleStrip.meterPeakLevel) {
-        page.makeValueBinding(
-          channelElements.scribbleStrip.meterPeakLevel,
-          channel.mValue.mVUMeterPeak
-        );
-      }
+    // 4. Fader
+    page.makeValueBinding(channelElements.fader.mSurfaceValue, channel.mValue.mVolume);
+    page.makeCommandBinding(channelElements.fader.mTouchedValue, "Mixer", "Meters: Reset");
+
+    // 5. Peak level display (Specific to QCon Pro X setup)
+    if (channelElements.scribbleStrip.meterPeakLevel) {
+      page.makeValueBinding(
+        channelElements.scribbleStrip.meterPeakLevel,
+        channel.mValue.mVUMeterPeak
+      );
+    }
 
     return channel;
   });
@@ -92,13 +92,13 @@ export function makeHostMapping(
       };
 
       // 3. Bind Fader Touch state to trigger the value display
-      // We REMOVED the hardcoded "MASTER" override here, letting the manager do its job!
       mainFader.onTouchedValueChangeCallbacks.addCallback((ctx, touched) => {
         masterManager.onFaderTouchedChange(ctx, Boolean(touched));
       });
 
       page.makeCommandBinding(mainFader.mTouchedValue, "Mixer", "Meters: Reset");
-      // --- THE FIX: Bind the Peak Level so Cubase actively sends data! ---
+      
+      // 4. Bind the Peak Level so Cubase actively sends data
       page.makeValueBinding(device.masterMeterPeakLevel, mainChannel.mValue.mVUMeterPeak);
       
       device.masterMeterPeakLevel.mOnDisplayValueChange = (ctx, val) => {
@@ -109,7 +109,7 @@ export function makeHostMapping(
         }
       };
 
-      // 5. NEW: Initialize the Master text on boot
+      // 5. Initialize the Master text on boot
       lifecycleCallbacks.addActivationCallback((ctx) => {
         masterManager.onChannelNameChange(ctx, "MASTER");
         masterManager.onMeterPeakLevelChange(ctx, "      "); // Clear peak display initially
