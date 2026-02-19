@@ -43,19 +43,19 @@ function bindLifecycleEvents(device: Device, lifecycleCallbacks: LifecycleCallba
   });
 
   lifecycleCallbacks.addDeactivationCallback((context) => {
-    // SAFETY CHECK: Ensure lcdManager exists before calling [cite: 1154]
+    // SAFETY CHECK: Ensure lcdManager exists before calling 
     if (device.lcdManager && typeof device.lcdManager.clearDisplays === 'function') {
       device.lcdManager.clearDisplays(context);
     }
 
-    // Reset faders [cite: 1154]
+    // Reset faders 
     for (let faderIndex = 0; faderIndex < 9; faderIndex++) {
       output.sendMidi(context, [0xe0 + faderIndex, 0, 0]);
     }
 
     resetLeds(context);
 
-    // Reset encoder LED rings [cite: 1154]
+    // Reset encoder LED rings 
     for (let encoderIndex = 0; encoderIndex < 8; encoderIndex++) {
       output.sendMidi(context, [0xb0, 0x30 + encoderIndex, 0]);
     }
@@ -70,7 +70,7 @@ function bindVuMeter(
   timerUtils: TimerUtils, 
   lifecycleCallbacks: LifecycleCallbacks
 ) {
-  let lastSentLevel = -1; // Initialize to -1 to indicate that no level has been sent yet [cite: 1156, 1157]
+  let lastSentLevel = -1; // Initialize to -1 to indicate that no level has been sent yet 
   let isMeterUnassigned = false;
   
   var sendLevel = function (context: MR_ActiveDevice, level: number) {
@@ -80,14 +80,14 @@ function bindVuMeter(
 
   vuMeter.mOnProcessValueChange = function (context, newValue) {
     if (!isMeterUnassigned || newValue === 0) {
-      // SCALING FOR 12 SEGMENTS (0-11) [cite: 1159]
+      // SCALING FOR 12 SEGMENTS (0-11) 
       const sensitivityScalar = 12;
-      const offsetCorrection = 0; // Stronger negative offset to clear bottom LEDs [cite: 1160]
+      const offsetCorrection = 0; // Stronger negative offset to clear bottom LEDs 
 
       const meterLevel = Math.ceil(
         (1 + Math.log10(0.1 + 0.9 * (1 + Math.log10(0.1 + 0.9 * newValue)))) * sensitivityScalar + offsetCorrection
       );
-      // Final clamp for 12 segments [cite: 1161]
+      // Final clamp for 12 segments 
       const clampedLevel = Math.max(0, Math.min(12, meterLevel));
       sendLevel(context, clampedLevel);
     }
@@ -99,10 +99,10 @@ function bindVuMeter(
     };
   };
 
-  // Start a timer to refresh the meter level every 100ms, preventing the hardware from dimming the LEDs [cite: 1164]
+  // Start a timer to refresh the meter level every 100ms, preventing the hardware from dimming the LEDs 
   var refreshId = "meterRefresh_" + meterId + "_" + midiChannel;
   var triggerRefresh = function (context: MR_ActiveDevice) {
-    // Only refresh if we have a valid level (>= 0) and fader is assigned [cite: 1165]
+    // Only refresh if we have a valid level (>= 0) and fader is assigned 
     if (!isMeterUnassigned && lastSentLevel >= 0) {
       outputPort.sendMidi(context, [208 + midiChannel, (meterId << 4) + lastSentLevel]);
     }
@@ -125,10 +125,10 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
   const ports = device.ports;
 
   for (const [channelIndex, channel] of device.channelElements.entries()) {
-    // Push Encoder [cite: 1169]
+    // Push Encoder 
     channel.encoder.bindToMidi(ports, channelIndex);
 
-    // Scribble Strip [cite: 1187]
+    // Scribble Strip 
     const channelTextManager = device.lcdManager.channelTextManagers[channelIndex];
     
     channel.encoder.mOnEncoderValueTitleChange.addCallback((context, title1, title2) => {
@@ -156,16 +156,24 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
     };
     
     channel.scribbleStrip.trackTitle.mOnTitleChange = (context, title, title2) => {
-      // If title2 is empty, it means the channel is no longer assigned to a track [cite: 1193]
+      // If title2 is empty, it means the channel is no longer assigned to a track
       const isUnassigned = title2 === "";
       
       if (isUnassigned) {
-        // Force the display to be empty for this channel [cite: 1194]
+        // Force the display to be empty for this channel
         channelTextManager.onChannelNameChange(context, "       ");
         channelTextManager.onParameterTitleChange(context, " ", " ");
         channelTextManager.onParameterDisplayValueChange(context, " ");
+        channelTextManager.onMeterPeakLevelChange(context, "       ");
       } else {
         channelTextManager.onChannelNameChange(context, title);
+        const currentPeakValue = channel.scribbleStrip.meterPeakLevel.getDisplayValue(context);
+        channelTextManager.refresh(context);
+        if (currentPeakValue && currentPeakValue.trim() !== "") {
+              channelTextManager.forceMeterPeakUpdate(context, currentPeakValue);
+          } else {
+              channelTextManager.forceMeterPeakUpdate(context, "       ");
+          }
       }
 
       setIsMeterUnassigned(context, isUnassigned);
@@ -206,7 +214,7 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
       sendMeterLevel(context, ports.output, channelIndex, 0xf);
     };
 
-    // VU Meter [cite: 1203]
+    // VU Meter 
     const setIsMeterUnassigned = bindVuMeter(channel.vuMeter, ports.output, channelIndex, 0, timerUtils, lifecycleCallbacks).setIsMeterUnassigned;
 
     globalState.areChannelMetersEnabled.addOnChangeCallback(
@@ -224,7 +232,7 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
       },
     );
     
-    // Channel Buttons [cite: 1206]
+    // Channel Buttons 
     const buttons = channel.buttons;
     for (const [row, button] of [
       buttons.record,
@@ -235,11 +243,11 @@ function bindChannelElements(device: Device, globalState: GlobalState, timerUtil
       button.bindToNote(ports, row * 8 + channelIndex);
     }
 
-    // Fader [cite: 1208]
+    // Fader 
     channel.fader.bindToMidi(ports, channelIndex, globalState);
   }
 
-  // Handle metering mode changes (globally) [cite: 1209]
+  // Handle metering mode changes (globally) 
   globalState.isGlobalLcdMeterModeVertical.addOnChangeCallback((context, isMeterModeVertical) => {
     sendGlobalMeterModeOrientation(context, ports.output, isMeterModeVertical);
   });
@@ -271,7 +279,7 @@ function bindControlSectionElements(device: MainDevice, globalState: GlobalState
     buttons.timeMode,
 
     ...buttons.function,
-    // REPLACED `...buttons.number` with Layer 2 (maps to notes 62-69) [cite: 1211]
+    // REPLACED `...buttons.number` with Layer 2 (maps to notes 62-69) 
     ...(device.customElements as any).functionLayer2,
 
     buttons.modify.undo,
@@ -319,16 +327,16 @@ function bindControlSectionElements(device: MainDevice, globalState: GlobalState
     }
   }
 
-  // Segment Display - handled by the SegmentDisplayManager, except for the individual LEDs: [cite: 1214]
+  // Segment Display - handled by the SegmentDisplayManager, except for the individual LEDs: 
   const { smpte, beats, solo } = elements.displayLeds;
   [smpte, beats, solo].forEach((lamp, index) => {
     lamp.bindToNote(ports.output, 0x71 + index);
   });
   
-  // Jog wheel [cite: 1216]
+  // Jog wheel 
   elements.jogWheel.bindToControlChange(ports.input, 0x3c);
 
-  // Foot control [cite: 1216]
+  // Foot control 
   elements.footSwitch1.mSurfaceValue.mMidiBinding.setInputPort(ports.input).bindToNote(0, 0x66);
   elements.footSwitch2.mSurfaceValue.mMidiBinding.setInputPort(ports.input).bindToNote(0, 0x67);
   elements.expressionPedal.mSurfaceValue.mMidiBinding
@@ -336,7 +344,7 @@ function bindControlSectionElements(device: MainDevice, globalState: GlobalState
     .bindToControlChange(0, 0x2e)
     .setTypeAbsolute();
     
-  // Main VU Meters [cite: 1218]
+  // Main VU Meters 
   if (elements.mainVuMeters) {
     // Meter ID 0 = Left, ID 1 = Right
     // The '1' at the end specifies MIDI Channel 2

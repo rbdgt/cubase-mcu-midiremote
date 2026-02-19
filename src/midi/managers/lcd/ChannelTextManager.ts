@@ -95,6 +95,19 @@ export class ChannelTextManager {
     }
   }
 
+  public refresh(context: MR_ActiveDevice) {
+    this.updateNameValueDisplay(context); 
+    this.updateSecondaryTrackTitleDisplay(context); 
+    this.updateSupplementaryInfo(context); 
+  }
+
+  public forceMeterPeakUpdate(context: MR_ActiveDevice, value: string) {
+    this.meterPeakLevel.set(context, value); 
+    if (!this.isFaderParameterDisplayed.get(context)) { 
+        this.updateSupplementaryInfo(context); 
+    }
+}
+
   private enableLocalValueDisplayMode(
     context: MR_ActiveDevice,
     mode: LocalValueDisplayMode.EncoderValue | LocalValueDisplayMode.PushValue,
@@ -259,7 +272,7 @@ export class ChannelTextManager {
     var cleanName = this.stripNonAsciiCharacters(this.formatParameterLabel(name));
     var lowerName = cleanName.toLowerCase();
 
-    // Use "Vol" as a standard fallback for volume parameters [cite: 786, 787]
+    // Use "Vol" as a standard fallback for volume parameters 
     var shortName = "Vol";
     if (name !== "" && lowerName.indexOf("volume") === -1 && lowerName.indexOf("stereo") === -1) {
       shortName = cleanName.substring(0, 3);
